@@ -20,6 +20,18 @@
 3) Consumer can fetch document from producer's local HTTP server
 
 
+## Running
+
+GO Version: 1.21.4
+
+```bash
+
+$ go build
+
+$ ./client
+
+```
+
 ## Other Notes
 
 * Probably need to use GO's RPC library, probably most difficult
