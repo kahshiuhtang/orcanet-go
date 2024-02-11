@@ -1,9 +1,38 @@
-package client
+package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/akamensky/argparse"
 )
 
 func main() {
-	fmt.Println("I love 416")
+	parser := argparse.NewParser("SeaTurtle Client", "Client that allows users to produce/consume files.")
+	var producer *bool = parser.Flag("p", "producer", &argparse.Options{
+		Required: false,
+		Default:  true,
+	})
+	var consumer *bool = parser.Flag("c", "consumer", &argparse.Options{
+		Required: false,
+		Default:  true,
+	})
+	err := parser.Parse(os.Args)
+	if err != nil {
+		// In case of error print error and print usage
+		fmt.Print(parser.Usage(err))
+	}
+	if *producer && *consumer {
+		fmt.Println("[Error]: Can be producer or consumer, not both.")
+		return
+	}
+	if *producer {
+		var client = Producer{currentCoins: 0}
+		client.SetupProducer(":9095")
+	}
+	if *consumer {
+		var client = Consumer{currentCoins: 0}
+		client.SetupConsumer()
+		client.RequestFileFromProducer("http://127.0.0.1:9095/")
+	}
 }

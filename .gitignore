@@ -3,3 +3,4 @@
 !go.mod
 !README.md
 !.gitignore
+!go.sum
