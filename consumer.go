@@ -32,7 +32,6 @@ func (cons *Consumer) RequestFileFromProducer(address string) bool {
 	}
 	//Convert the body to type string
 	sb := string(body)
-	log.Printf(sb)
 	fmt.Println(sb)
 	return false
 }

@@ -17,6 +17,10 @@ func main() {
 		Required: false,
 		Default:  true,
 	})
+	var port *string = parser.String("p", "port", &argparse.Options{
+		Required: true,
+		Default:  ":8080",
+	})
 	err := parser.Parse(os.Args)
 	if err != nil {
 		// In case of error print error and print usage
@@ -28,7 +32,7 @@ func main() {
 	}
 	if *producer {
 		var client = Producer{currentCoins: 0}
-		client.SetupProducer(":9095")
+		client.SetupProducer(*port)
 	}
 	if *consumer {
 		var client = Consumer{currentCoins: 0}
