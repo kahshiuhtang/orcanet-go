@@ -16,7 +16,8 @@ func (cons *Consumer) SetupConsumer() bool {
 }
 
 // Use requestFile if the function is internal, otherwise name it RequestFile
-func (cons *Consumer) RequestFileFromMarket() bool {
+// Should use RPC
+func (cons *Consumer) RequestFileFromMarket(priceOffer float64) bool {
 	return false
 }
 

@@ -63,7 +63,11 @@ func (prod *Producer) SetupProducer(port string) bool {
 	http.HandleFunc("/recvCoin", handleCoin)
 	fmt.Println("[Client]: Listening On Port" + port)
 	fmt.Println("[Client]: Press CTRL + C to quit.")
-	http.ListenAndServe(port, nil)
+	go func() {
+		for {
+			http.ListenAndServe(port, nil)
+		}
+	}()
 	return true
 }
 
