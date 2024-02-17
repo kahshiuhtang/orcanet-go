@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	pnc "peer-node/client"
+	pns "peer-node/server"
 
 	"github.com/akamensky/argparse"
 )
@@ -31,11 +33,11 @@ func main() {
 		return
 	}
 	if *producer {
-		var client = Producer{currentCoins: 0}
+		var client = pns.Producer{CurrentCoins: 0}
 		client.SetupProducer(*port)
 	}
 	if *consumer {
-		var client = Consumer{currentCoins: 0}
+		var client = pnc.Consumer{CurrentCoins: 0.0}
 		client.SetupConsumer()
 		client.RequestFileFromProducer("http://127.0.0.1:9095/")
 	}
