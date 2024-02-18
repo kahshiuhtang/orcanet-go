@@ -1,20 +1,23 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	pb "peer-node/fileshare"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Consumer struct {
-	CurrentCoins float64
-}
-
-func requestFile(client pb.FileShareClient, fileDesc *pb.FileDesc) {
+func requestFile(client pb.FileShareClient, fileDesc *pb.FileDesc) string {
 	log.Printf("Requesting IP For File (%s)", fileDesc.FileName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -23,6 +26,7 @@ func requestFile(client pb.FileShareClient, fileDesc *pb.FileDesc) {
 		log.Fatalf("client.requestFileStorage failed: %v", err)
 	}
 	log.Println(feature)
+	return ""
 }
 
 func requestFileStorage(client pb.FileShareClient, fileDesc *pb.FileDesc) {
@@ -36,18 +40,15 @@ func requestFileStorage(client pb.FileShareClient, fileDesc *pb.FileDesc) {
 	log.Println(feature)
 }
 
-func (cons *Consumer) SetupConsumer() bool {
-	return true
-}
+func RequestFileFromProducer(baseURL string, filename string) bool {
+	encodedParams := url.Values{}
+	encodedParams.Add("filename", filename)
+	queryString := encodedParams.Encode()
 
-// Use requestFile if the function is internal, otherwise name it RequestFile
-// Should use RPC
-func (cons *Consumer) RequestFileFromMarket(priceOffer float64) bool {
-	return false
-}
+	// Construct the URL with the query string
+	urlWithQuery := fmt.Sprintf("%s?%s", baseURL, queryString)
+	resp, err := http.Get(urlWithQuery)
 
-func (cons *Consumer) RequestFileFromProducer(address string) bool {
-	resp, err := http.Get(address)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -62,6 +63,41 @@ func (cons *Consumer) RequestFileFromProducer(address string) bool {
 	return false
 }
 
-func (cons *Consumer) SendCurrency() bool {
+func SendCurrency(baseURL string, amount int) bool {
+	// Send the POST request
+	jsonData, err := json.Marshal(amount)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	req, err := http.NewRequest("POST", baseURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer resp.Body.Close()
 	return false
+}
+
+var (
+	marketAddr = flag.String("addr", "localhost:50051", "The market address in the format of host:port")
+)
+
+func main() {
+	flag.Parse()
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(*marketAddr, opts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	defer conn.Close()
+	client := pb.NewFileShareClient(conn)
+
 }
