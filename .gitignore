@@ -5,3 +5,5 @@
 !.gitignore
 !go.sum
 !fileshare
+!server/
+!client/

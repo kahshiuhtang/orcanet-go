@@ -52,6 +52,14 @@ $ ./client
 
 * Store Transaction [Producer to Market]
 
+## HTTP Functionality
+
+Server should only look for two things:
+
+* Route /requestFile with a GET Request, parameter of `filename`, a string that represents name of file
+
+* Route /sendCoin with a POST Request, data contains a JSON object with one field named `amount`
+
 ## Other Notes
 
 * Probably need to use GO's RPC library, probably most difficult
