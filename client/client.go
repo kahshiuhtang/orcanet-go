@@ -98,6 +98,6 @@ func main() {
 		log.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
-	client := pb.NewFileShareClient(conn)
+	// client := pb.NewFileShareClient(conn)
 
 }
