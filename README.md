@@ -58,6 +58,14 @@ Server should only look for two things:
 
 * Route /requestFile with a GET Request, parameter of `filename`, a string that represents name of file
 
+ Demo below. The client requests a file in the server's local directory.
+
+ 
+
+
+https://github.com/kahshiuhtang/PeerNodes/assets/78182536/321af8e3-0a5f-4731-9544-f67b3c4418e8
+
+
 * Route /sendCoin with a POST Request, data contains a JSON object with one field named `amount`
 
 ## Other Notes
