@@ -15,16 +15,39 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func RequestFileFromMarket(client pb.FileShareClient, fileDesc *pb.FileDesc) string {
+func RequestFileFromMarket(client pb.FileShareClient, fileDesc *pb.FileDesc) *pb.StorageIP {
 	log.Printf("Requesting IP For File (%s)", fileDesc.FileName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	feature, err := client.PlaceFileRequest(ctx, fileDesc)
+	streamOfAddresses, err := client.PlaceFileRequest(ctx, fileDesc)
 	if err != nil {
 		log.Fatalf("client.requestFileStorage failed: %v", err)
 	}
-	log.Println(feature)
-	return ""
+	var possible_candidates = []*pb.StorageIP{}
+	for {
+		storage_ip, err := streamOfAddresses.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("client.ListFeatures failed: %v", err)
+		}
+		log.Printf("File %s found on address: %s for the cost of %f",
+			storage_ip.FileName, storage_ip.Address, storage_ip.FileCost)
+		possible_candidates = append(possible_candidates, storage_ip)
+		if storage_ip.IsLastCandidate == true {
+			break
+		}
+	}
+	var best_candidate *pb.StorageIP = nil
+	for _, candidate := range possible_candidates {
+		if best_candidate == nil {
+			best_candidate = candidate
+		} else if best_candidate.FileCost < candidate.FileCost {
+			best_candidate = candidate
+		}
+	}
+	return best_candidate
 }
 
 func RequestFileFromProducer(baseURL string, filename string) bool {

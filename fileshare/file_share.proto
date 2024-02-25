@@ -67,5 +67,6 @@ message StorageIP{
     string user_id = 3;
     string file_name = 4;
     int64 file_byte_size = 5;
-    bool is_last_candidate = 6;
+    float file_cost = 6;
+    bool is_last_candidate = 7;
 }
