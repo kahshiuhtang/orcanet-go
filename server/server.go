@@ -149,7 +149,7 @@ func NotifyStoreWrapper(client pb.FileShareClient, file_name_hash string, file_n
 		FileSizeBytes:     file_size_bytes,
 		FileOriginAddress: file_origin_address,
 		OriginUserId:      origin_user_id,
-		FileCost:          float64(file_cost),
+		FileCost:          file_cost,
 		FileDataHash:      file_data_hash,
 		FileBytes:         file_bytes}
 	var ack = runNotifyUnstore(client, &file_description)
@@ -165,7 +165,7 @@ func NotifyUnstoreWrapper(client pb.FileShareClient, file_name_hash string, file
 		FileSizeBytes:     file_size_bytes,
 		FileOriginAddress: file_origin_address,
 		OriginUserId:      origin_user_id,
-		FileCost:          float64(file_cost),
+		FileCost:          file_cost,
 		FileDataHash:      file_data_hash,
 		FileBytes:         file_bytes}
 	var ack = runNotifyUnstore(client, &file_description)

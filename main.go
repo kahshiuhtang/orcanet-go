@@ -13,8 +13,8 @@ import (
 )
 
 type FileData struct {
-    FileName string `json:"filename"`
-    Content  []byte `json:"content"`
+	FileName string `json:"filename"`
+	Content  []byte `json:"content"`
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
@@ -53,31 +53,31 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func storeFile(w http.ResponseWriter, r *http.Request) {
-    // Parse JSON object from request body
-    var fileData FileData
-    err := json.NewDecoder(r.Body).Decode(&fileData)
-    if err != nil {
-        http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-        return
-    }
+	// Parse JSON object from request body
+	var fileData FileData
+	err := json.NewDecoder(r.Body).Decode(&fileData)
+	if err != nil {
+		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
+		return
+	}
 
-    // Create file
-    file, err := os.Create("./files/stored/" + fileData.FileName)
-    if err != nil {
-        http.Error(w, "Failed to create file", http.StatusInternalServerError)
-        return
-    }
-    defer file.Close()
+	// Create file
+	file, err := os.Create("./files/stored/" + fileData.FileName)
+	if err != nil {
+		http.Error(w, "Failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
 
-    // Write content to file
-    _, err = file.Write(fileData.Content)
-    if err != nil {
-        http.Error(w, "Failed to write to file", http.StatusInternalServerError)
-        return
-    }
+	// Write content to file
+	_, err = file.Write(fileData.Content)
+	if err != nil {
+		http.Error(w, "Failed to write to file", http.StatusInternalServerError)
+		return
+	}
 
-    fmt.Fprintf(w, "Requested client stored file %s successfully!\n", fileData.FileName)
-    fmt.Printf("\nStored file %s!\n", fileData.FileName)
+	fmt.Fprintf(w, "Requested client stored file %s successfully!\n", fileData.FileName)
+	fmt.Printf("\nStored file %s!\n", fileData.FileName)
 }
 
 func getFile(ip, port, filename string) {
@@ -109,43 +109,43 @@ func getFile(ip, port, filename string) {
 }
 
 func requestStorage(ip, port, filename string) {
-    // Read file content
-    content, err := os.ReadFile("./files/documents/" + filename)
-    if err != nil {
-        fmt.Println("Error reading file:", err)
-        return
-    }
+	// Read file content
+	content, err := os.ReadFile("./files/documents/" + filename)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
 
-    // Create FileData struct
-    fileData := FileData{
-        FileName: filename,
-        Content:  content,
-    }
+	// Create FileData struct
+	fileData := FileData{
+		FileName: filename,
+		Content:  content,
+	}
 
-    // Marshal FileData to JSON
-    jsonData, err := json.Marshal(fileData)
-    if err != nil {
-        fmt.Println("Error marshalling JSON:", err)
-        return
-    }
+	// Marshal FileData to JSON
+	jsonData, err := json.Marshal(fileData)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
 
-    // Send POST request to store file
-    resp, err := http.Post(fmt.Sprintf("http://%s:%s/storeFile/", ip, port), "application/json", bytes.NewBuffer(jsonData))
-    if err != nil {
-        fmt.Println("Error sending request:", err)
-        return
-    }
-    defer resp.Body.Close()
+	// Send POST request to store file
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/storeFile/", ip, port), "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	}
+	defer resp.Body.Close()
 
-    // Read response body
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        fmt.Println("Error reading response body:", err)
-        return
-    }
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
 
-    fmt.Println(string(body))
-    fmt.Print()
+	fmt.Println(string(body))
+	fmt.Print()
 }
 
 // Ask user to enter a port and returns it
@@ -162,7 +162,7 @@ func getPort() string {
 		port = strings.TrimSpace(port)
 
 		// Validate port
-		listener, err := net.Listen("tcp", ":" + port)
+		listener, err := net.Listen("tcp", ":"+port)
 		if err == nil {
 			defer listener.Close()
 			return port
@@ -173,17 +173,17 @@ func getPort() string {
 }
 
 // Start HTTP server
-func startServer(port string, serverReady chan<-bool) {
+func startServer(port string, serverReady chan<- bool) {
 	http.HandleFunc("/requestFile/", sendFile)
 	http.HandleFunc("/storeFile/", storeFile)
 
-    fmt.Printf("Listening on port %s...\n\n", port)
+	fmt.Printf("Listening on port %s...\n\n", port)
 	serverReady <- true
-    http.ListenAndServe(":" + port, nil)
+	http.ListenAndServe(":"+port, nil)
 }
 
-// Start CLI 
-func startCLI () {
+// Start CLI
+func startCLI() {
 	fmt.Println("Dive In and Explore! Type 'help' for available commands.")
 
 	reader := bufio.NewReader(os.Stdin)
