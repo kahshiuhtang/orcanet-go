@@ -69,6 +69,12 @@ Requesting a file:
 $ get [ip] [port] [filename]
 ```
 
+Storing a file:
+
+```bash
+$ store [ip] [address] [filename]
+```
+
 Listing all files stored for IPFS
 
 ```bash
