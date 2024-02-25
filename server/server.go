@@ -3,7 +3,6 @@ package server
 // formatting and printing values to the console.
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"peer-node/fileshare"
 	pb "peer-node/fileshare"
 
 	"google.golang.org/grpc"
@@ -28,27 +28,7 @@ type fileShareServerNode struct {
 	currentCoins float64
 }
 
-func NotifyAvailableStorage(client pb.FileShareClient, storageIP *pb.StorageIP) {
-	log.Printf("Sending Market Availability")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	stream, err := client.NotifyAvailableStorage(ctx, storageIP)
-	if err != nil {
-		log.Fatalf("client.ListFeatures failed: %v", err)
-	}
-	for {
-		fileDesc, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("client.notifyAvailableStorage failed: %v", err)
-		}
-		log.Printf("Recieved File %s", fileDesc.FileName)
-	}
-}
-
-func sendFile(w http.ResponseWriter, r *http.Request) {
+func sendFileToConsumer(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		for k, v := range r.URL.Query() {
@@ -56,14 +36,7 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 		}
 		// file = r.URL.Query().Get("filename")
 		w.Write([]byte("Received a GET request\n"))
-	case "POST":
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
 
-		fmt.Printf("%s\n", reqBody)
-		w.Write([]byte("Received a POST request\n"))
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
@@ -101,36 +74,112 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type sentCoinMessage struct {
-	Amount string `json:"amount"`
+func runRecordTransaction(client pb.FileShareClient, transaction *pb.FileRequestTransaction) *pb.TransactionACKResponse {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ackResponse, err := client.RecordFileRequestTransaction(ctx, transaction)
+	if err != nil {
+		log.Fatalf("client.RecordFileRequestTransaction failed: %v", err)
+	}
+	log.Printf("ACK Response: %v", ackResponse)
+	return ackResponse
 }
 
-func receiveCoin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "HANDLE COIN")
-	switch r.Method {
-	case "POST":
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var coins sentCoinMessage
-		err = json.Unmarshal(reqBody, &coins)
-		if err != nil {
-			http.Error(w, "Error decoding JSON data", http.StatusBadRequest)
-			return
-		}
-		fmt.Printf("%s\n", reqBody)
-		w.Write([]byte("Received a POST request\n"))
-	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
+func runNotifyStore(client pb.FileShareClient, file *pb.FileDesc) *fileshare.StorageACKResponse {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ackResponse, err := client.NotifyFileStore(ctx, file)
+	if err != nil {
+		log.Fatalf("client.NotifyFileStorage failed: %v", err)
+	}
+	log.Printf("ACK Response: %v", ackResponse)
+	return ackResponse
+}
+
+func runNotifyUnstore(client pb.FileShareClient, file *pb.FileDesc) *fileshare.StorageACKResponse {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ackResponse, err := client.NotifyFileUnstore(ctx, file)
+	if err != nil {
+		log.Fatalf("client.NotifyFileStorage failed: %v", err)
+	}
+	log.Printf("ACK Response: %v", ackResponse)
+	return ackResponse
+}
+
+/*
+int64 file_byte_size = 1;
+string file_hash_name = 2;
+float currency_exchanged = 3;
+string sender_id = 4;
+string reciever_id = 5;
+string file_ip_location = 6;
+int64 seconds_timeout = 7;
+*/
+func RecordTransactionWrapper(client pb.FileShareClient, file_size int64, file_hash_name string, cost float64, sender_id string, receiver_id string, file_ip_location string, seconds_timeout int64) {
+	var transaction = pb.FileRequestTransaction{FileByteSize: file_size,
+		FileHashName:      file_hash_name,
+		CurrencyExchanged: float32(cost),
+		SenderId:          sender_id,
+		ReceiverId:        receiver_id,
+		FileIpLocation:    file_ip_location,
+		SecondsTimeout:    seconds_timeout,
+	}
+	var ack = runRecordTransaction(client, &transaction)
+	if ack.IsSuccess {
+		fmt.Println("[Server]: Successfully recorded transaction in hash: %v", ack.BlockHash)
+	} else {
+		fmt.Println("[Server]: Unable to record transaction in blockchain")
 	}
 }
+
+/*
+string file_name_hash = 1;
+string file_name = 2;
+int64 file_size_bytes = 3;
+string file_origin_address = 4;
+string origin_user_id = 5;
+float file_cost = 6;
+string file_data_hash = 7;
+bytes file_bytes = 8;
+*/
+func NotifyStoreWrapper(client pb.FileShareClient, file_name_hash string, file_name string, file_size_bytes int64, file_origin_address string, origin_user_id string, file_cost float32, file_data_hash string, file_bytes []byte) {
+	var file_description = pb.FileDesc{FileNameHash: file_name_hash,
+		FileName:          file_name,
+		FileSizeBytes:     file_size_bytes,
+		FileOriginAddress: file_origin_address,
+		OriginUserId:      origin_user_id,
+		FileCost:          file_cost,
+		FileDataHash:      file_data_hash,
+		FileBytes:         file_bytes}
+	var ack = runNotifyUnstore(client, &file_description)
+	if ack.IsAcknowledged {
+		fmt.Printf("[Server]: Market acknowledged stopping storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
+	} else {
+		fmt.Printf("[Server]: Unable to notify market that we are stopping the storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
+	}
+}
+func NotifyUnstoreWrapper(client pb.FileShareClient, file_name_hash string, file_name string, file_size_bytes int64, file_origin_address string, origin_user_id string, file_cost float32, file_data_hash string, file_bytes []byte) {
+	var file_description = pb.FileDesc{FileNameHash: file_name_hash,
+		FileName:          file_name,
+		FileSizeBytes:     file_size_bytes,
+		FileOriginAddress: file_origin_address,
+		OriginUserId:      origin_user_id,
+		FileCost:          file_cost,
+		FileDataHash:      file_data_hash,
+		FileBytes:         file_bytes}
+	var ack = runNotifyUnstore(client, &file_description)
+	if ack.IsAcknowledged {
+		fmt.Printf("[Server]: Market acknowledged stopping storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
+	} else {
+		fmt.Printf("[Server]: Unable to notify market that we are stopping the storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
+	}
+}
+
 func setupProducer(gRPCPort int, httpPort int) *fileShareServerNode {
 	s := &fileShareServerNode{savedFiles: make(map[string][]*pb.FileDesc)}
 	// s.loadMappings(*jsonDBFile) // Have a load and save mappings
-	http.HandleFunc("/requestFile", sendFile)
-	http.HandleFunc("/sendCoin", receiveCoin)
+	http.HandleFunc("/file", sendFileToConsumer)
 	fmt.Println("[Server]: Listening On Port" + strconv.Itoa(httpPort))
 	fmt.Println("[Server]: Press CTRL + C to quit.")
 	go func() {
