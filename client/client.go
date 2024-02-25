@@ -1,9 +1,7 @@
 package client
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -17,7 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func requestFile(client pb.FileShareClient, fileDesc *pb.FileDesc) string {
+func RequestFileFromMarket(client pb.FileShareClient, fileDesc *pb.FileDesc) string {
 	log.Printf("Requesting IP For File (%s)", fileDesc.FileName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -27,17 +25,6 @@ func requestFile(client pb.FileShareClient, fileDesc *pb.FileDesc) string {
 	}
 	log.Println(feature)
 	return ""
-}
-
-func requestFileStorage(client pb.FileShareClient, fileDesc *pb.FileDesc) {
-	log.Printf("Requesting IP For Storage For File (%s)", fileDesc.FileName)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	feature, err := client.PlaceFileStoreRequest(ctx, fileDesc)
-	if err != nil {
-		log.Fatalf("client.requestFileStorage failed: %v", err)
-	}
-	log.Println(feature)
 }
 
 func RequestFileFromProducer(baseURL string, filename string) bool {
@@ -60,28 +47,6 @@ func RequestFileFromProducer(baseURL string, filename string) bool {
 	//Convert the body to type string
 	sb := string(body)
 	fmt.Println(sb)
-	return false
-}
-
-func SendCurrency(baseURL string, amount int) bool {
-	// Send the POST request
-	jsonData, err := json.Marshal(amount)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	req, err := http.NewRequest("POST", baseURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer resp.Body.Close()
 	return false
 }
 

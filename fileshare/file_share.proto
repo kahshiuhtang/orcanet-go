@@ -7,42 +7,22 @@ package fileshare;
 
 // Client --> Server
 service FileShare{
-    // Producer/Consumer --> Market/Blockchain
-    rpc RecordFileStoreTransaction(FileStoreTransaction) returns (TransactionACKResponse);
-    // Producer/Consumer --> Market/Blockchain
+    // Producer/Consumer --> Blockchain
     rpc RecordFileRequestTransaction(FileRequestTransaction) returns (TransactionACKResponse);
     // Consumer --> Market
-    rpc PlaceFileStoreRequest(FileDesc) returns (StorageIP);
-    // Consumer --> Market
-    rpc PlaceFileRequest (FileDesc) returns (StorageIP);
+    rpc PlaceFileRequest (FileDesc) returns (stream StorageIP);
     // Producer --> Market
-    rpc NotifyAvailableStorage(StorageIP) returns (StorageACKResponse);
+    rpc NotifyFileStorage(FileDesc) returns (StorageACKResponse);
     // Market --> Producer ?? Maybe Market --> Consumer instead
-    rpc NotifyStorageOppurtunity(stream FileDesc) returns (StorageResponse);
-    // Consumer --> Producer
-    rpc OfferStorageTransaction(FileStoreTransaction) returns (TransactionResponse);
-    // Consumer --> Producer
-    rpc OfferRequestTransaction(FileRequestTransaction) returns (TransactionResponse);
+    rpc NotifyFileUnstorage(FileDesc) returns (StorageACKResponse);
     // Consumer --> Producer
     rpc SendFile(FileDesc) returns (FileDesc);
-    // Consumer --> Producer
-    rpc SendFileToStore(FileDesc) returns (FileDesc);
-}
-message FileStoreTransaction{
-    int64 file_name = 1;
-    string file_byte_size = 2;
-    string file_data_hash = 3;
-    float currency_offered = 4;
-    string sender_id = 5;
-    string reciever_id = 6;
-    string file_ip_location = 7;
-    int64 seconds_timeout = 8;
 }
 
 message FileRequestTransaction{
     int64 file_byte_size = 1;
-    string file_name = 2;
-    float currency_offered = 3;
+    string file_hash_name = 2;
+    float currency_exchanged = 3;
     string sender_id = 4;
     string reciever_id = 5;
     string file_ip_location = 6;
@@ -58,6 +38,10 @@ message TransactionACKResponse{
 
 message StorageACKResponse {
     bool is_acknowledged = 1;
+    string file_name = 2;
+    string file_hash = 3;
+    int64 file_byte_size = 4;
+
 }
 message StorageResponse{
     bool agree_to_store = 1;
@@ -66,21 +50,15 @@ message StorageResponse{
     string file_name = 4;
 }
 
-message TransactionResponse{
-    bool transaction_approval = 1;
-    float counter_offer = 2;
-    int64 seconds_timeout = 3;
-    string sender_id = 4;
-}
-
 message FileDesc{
-    string file_name = 1;
-    int64 file_size_bytes = 2;
-    bool is_file_bytes_filled = 3;
-    string file_address = 4;
-    string user_id = 5;
-    string file_data_hash = 6;
-    bytes file_bytes = 7;
+    string file_name_hash = 1;
+    string file_name = 2;
+    int64 file_size_bytes = 3;
+    string file_origin_address = 4;
+    string origin_user_id = 5;
+    double file_cost = 6;
+    string file_data_hash = 7;
+    bytes file_bytes = 8;
 }
 
 message StorageIP{
@@ -89,4 +67,5 @@ message StorageIP{
     string user_id = 3;
     string file_name = 4;
     int64 file_byte_size = 5;
+    bool is_last_candidate = 6;
 }

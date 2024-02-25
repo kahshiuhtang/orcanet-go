@@ -2,8 +2,6 @@ package server
 
 // formatting and printing values to the console.
 import (
-	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
 
 	pb "peer-node/fileshare"
 
@@ -28,27 +25,7 @@ type fileShareServerNode struct {
 	currentCoins float64
 }
 
-func NotifyAvailableStorage(client pb.FileShareClient, storageIP *pb.StorageIP) {
-	log.Printf("Sending Market Availability")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	stream, err := client.NotifyAvailableStorage(ctx, storageIP)
-	if err != nil {
-		log.Fatalf("client.ListFeatures failed: %v", err)
-	}
-	for {
-		fileDesc, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("client.notifyAvailableStorage failed: %v", err)
-		}
-		log.Printf("Recieved File %s", fileDesc.FileName)
-	}
-}
-
-func sendFile(w http.ResponseWriter, r *http.Request) {
+func sendFileToConsumer(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		for k, v := range r.URL.Query() {
@@ -105,32 +82,10 @@ type sentCoinMessage struct {
 	Amount string `json:"amount"`
 }
 
-func receiveCoin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "HANDLE COIN")
-	switch r.Method {
-	case "POST":
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var coins sentCoinMessage
-		err = json.Unmarshal(reqBody, &coins)
-		if err != nil {
-			http.Error(w, "Error decoding JSON data", http.StatusBadRequest)
-			return
-		}
-		fmt.Printf("%s\n", reqBody)
-		w.Write([]byte("Received a POST request\n"))
-	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
-	}
-}
 func setupProducer(gRPCPort int, httpPort int) *fileShareServerNode {
 	s := &fileShareServerNode{savedFiles: make(map[string][]*pb.FileDesc)}
 	// s.loadMappings(*jsonDBFile) // Have a load and save mappings
-	http.HandleFunc("/requestFile", sendFile)
-	http.HandleFunc("/sendCoin", receiveCoin)
+	http.HandleFunc("/file", sendFileToConsumer)
 	fmt.Println("[Server]: Listening On Port" + strconv.Itoa(httpPort))
 	fmt.Println("[Server]: Press CTRL + C to quit.")
 	go func() {

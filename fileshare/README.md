@@ -26,14 +26,6 @@ This would be sent from the producer to the market to let the market know there 
 
 This would be sent from the market to the producer to let the producer know of a potential storage opportunity. The producer will need to acknowledge whether or not it wants to go ahead with this transaction or if it declines.
 
-## rpc OfferStorageTransaction(TransactionStore) returns (TransactionResponse);
-
-This would send an offer for the storage of a file from the consumer to the producer. The request will describe the file.
-
-## rpc OfferRequestTransaction(TransactionRequest) returns (TransactionResponse);
-
-This would send an offer for one specific file from the consumer to the producer. The request will describe the file.
-
 ## rpc SendFile(FileDesc) returns (FileDesc);
 
 This would send a file from the producer to the consumer.
