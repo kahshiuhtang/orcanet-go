@@ -7,43 +7,24 @@ package fileshare;
 
 // Client --> Server
 service FileShare{
-    // Producer/Consumer --> Market/Blockchain
-    rpc RecordFileStoreTransaction(TransactionStore) returns (TransactionACKResponse);
-    // Producer/Consumer --> Market/Blockchain
-    rpc RecordFileRequestTransaction(TransactionRequest) returns (TransactionACKResponse);
+    // Producer/Consumer --> Blockchain
+    rpc RecordFileRequestTransaction(FileRequestTransaction) returns (TransactionACKResponse);
     // Consumer --> Market
-    rpc PlaceFileStoreRequest(FileDesc) returns (StorageIP);
-    // Consumer --> Market
-    rpc PlaceFileRequest (FileDesc) returns (StorageIP);
+    rpc PlaceFileRequest (FileDesc) returns (stream StorageIP);
     // Producer --> Market
-    rpc NotifyAvailableStorage(StorageIP) returns (StorageACKResponse);
+    rpc NotifyFileStore(FileDesc) returns (StorageACKResponse);
     // Market --> Producer ?? Maybe Market --> Consumer instead
-    rpc NotifyStorageOppurtunity(stream FileDesc) returns (StorageResponse);
-    // Consumer --> Producer
-    rpc OfferStorageTransaction(TransactionStore) returns (TransactionResponse);
-    // Consumer --> Producer
-    rpc OfferRequestTransaction(TransactionRequest) returns (TransactionResponse);
+    rpc NotifyFileUnstore(FileDesc) returns (StorageACKResponse);
     // Consumer --> Producer
     rpc SendFile(FileDesc) returns (FileDesc);
-    // Consumer --> Producer
-    rpc SendFileToStore(FileDesc) returns (FileDesc);
-}
-message TransactionStore{
-    int64 file_byte_size = 1;
-    string file_name = 2;
-    float currency_offered = 3;
-    string sender_id = 4;
-    string reciever_id = 5;
-    string file_ip_location = 6;
-    int64 seconds_timeout = 7;
 }
 
-message TransactionRequest{
+message FileRequestTransaction{
     int64 file_byte_size = 1;
-    string file_name = 2;
-    float currency_offered = 3;
+    string file_hash_name = 2;
+    float currency_exchanged = 3;
     string sender_id = 4;
-    string reciever_id = 5;
+    string receiver_id = 5;
     string file_ip_location = 6;
     int64 seconds_timeout = 7;
 }
@@ -51,34 +32,33 @@ message TransactionRequest{
 message TransactionACKResponse{
     bool is_success = 1;
     string block_hash = 2;
-    double hash_timestamp = 3;
+    double timestamp = 3;
     string market_id = 4;
 }
 
 message StorageACKResponse {
     bool is_acknowledged = 1;
+    string file_name = 2;
+    string file_hash = 3;
+    int64 file_byte_size = 4;
+
 }
 message StorageResponse{
-    bool store_agree = 1;
+    bool agree_to_store = 1;
     string storer_id = 2;
     int64 file_bytes_size = 3;
     string file_name = 4;
 }
 
-message TransactionResponse{
-    bool transaction_approval = 1;
-    float counter_offer = 2;
-    int64 seconds_timeout = 3;
-    string sender_id = 4;
-}
-
 message FileDesc{
-    string file_name = 1;
-    int64 file_size_bytes = 2;
-    bool is_file_bytes_filled = 3;
-    string file_address = 4;
-    string user_id = 5;
-    bytes file_bytes = 6;
+    string file_name_hash = 1;
+    string file_name = 2;
+    int64 file_size_bytes = 3;
+    string file_origin_address = 4;
+    string origin_user_id = 5;
+    float file_cost = 6;
+    string file_data_hash = 7;
+    bytes file_bytes = 8;
 }
 
 message StorageIP{
@@ -87,4 +67,6 @@ message StorageIP{
     string user_id = 3;
     string file_name = 4;
     int64 file_byte_size = 5;
+    float file_cost = 6;
+    bool is_last_candidate = 7;
 }
