@@ -1,14 +1,14 @@
-# Producer/Consumer Nodes
+# Peer Node
 
 ## Requirements
 
-1) Clients uses RPC protocol in GO to send request
+1) Clients uses gRPC protocol in GO to ask for address of file
 
 2) User sends request to server for file
 
 3) User storing file will then send the file back
 
-4) User sending the request will then make a request to send tokens/coins
+4) User will then record the transaction by sending a message to the blockchain
  
 
 ## Assumptions
@@ -22,7 +22,7 @@
 
 ## Running
 
-Generating gRPC files:
+First generate the gRPC files for GO. Make sure you are in the root of the project and run the command below.
 
 ``` bash
 
@@ -42,15 +42,16 @@ $ ./client
 ```
 
 ## gRPC API
-* RequestFileStoreIP: Give file, file size, price, get back IP address
 
-* StoreFile: Give file, 
+* RecordFileRequestTransaction: Tell blockchain of a completed transaction
 
-* RequestFileIP [Consumer to Market]: Give file name, get back IP address
+* PlaceFileRequest: Ask market to tell you ALL possible locations where file is store 
 
-* RequestFile [Consumer to Producer]: Give file name, get back file
+* NotifyFileStore Tell market you will store a file for future access
 
-* Store Transaction [Producer to Market]
+* NotifyFileUnstore: Tell market you no longer have a specific file
+
+* SendFile: Send a File
 
 ## HTTP Functionality
 
@@ -58,17 +59,33 @@ Server should only look for two things:
 
 * Route /requestFile with a GET Request, parameter of `filename`, a string that represents name of file
 
-* Route /sendCoin with a POST Request, data contains a JSON object with one field named `amount`
+* Route /storeFile with a GET Request, similar to the route /requestFile
 
-## Other Notes
+## CLI interface
 
-* Probably need to use GO's RPC library, probably most difficult
+Requesting a file:
 
-* Use HTTP for sending requests and setting up server 
+```bash
+$ get [ip] [port] [filename]
+```
 
-* How do I load a file in?
+Storing a file:
 
-* Maybe some mechanism to figure out how many coins you have before you send
+```bash
+$ store [ip] [address] [filename]
+```
+
+Listing all files stored for IPFS
+
+```bash
+$ list
+```
+
+Exiting Program
+
+```bash
+$ exit
+```
 
 
 
