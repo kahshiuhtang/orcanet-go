@@ -11,12 +11,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"peer-node/fileshare"
 	pb "peer-node/fileshare"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const keyServerAddr = "serverAddr"
+
+type fileShareServerNode struct {
+	pb.UnimplementedFileShareServer
+	savedFiles   map[string][]*pb.FileDesc // read-only after initialized
+	mu           sync.Mutex                // protects routeNotes
+	currentCoins float64
+}
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /root request\n")
