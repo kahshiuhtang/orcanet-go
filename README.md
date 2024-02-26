@@ -37,7 +37,7 @@ GO Version: 1.21.4
 
 $ go build
 
-$ ./client
+$ ./peer-node
 
 ```
 
