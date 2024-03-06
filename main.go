@@ -67,9 +67,25 @@ type FileData struct {
 	Content  []byte `json:"content"`
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request) {
+func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Extract filename from URL path
 	filename := r.URL.Path[len("/requestFile/"):]
+
+	// Ask for confirmation
+	*confirming = true
+	fmt.Printf("\nYou have just received a request to send file '%s'. Do you want to send the file? (yes/no): ", filename)
+
+	// Check if confirmation is received
+	for *confirmation != "yes" {
+		if *confirmation != "" {
+			http.Error(w, fmt.Sprintf("Client declined to send file '%s'.", filename), http.StatusUnauthorized)
+			*confirmation = ""
+			*confirming = false
+			return
+		} 
+	}
+	*confirmation = ""
+	*confirming = false
 
 	// Open the file
 	file, err := os.Open("./files/stored/" + filename)
@@ -99,10 +115,10 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("\nFile %s sent!\n", filename)
+	fmt.Printf("\nFile %s sent!\n\n> ", filename)
 }
 
-func storeFile(w http.ResponseWriter, r *http.Request) {
+func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Parse JSON object from request body
 	var fileData FileData
 	err := json.NewDecoder(r.Body).Decode(&fileData)
@@ -110,6 +126,22 @@ func storeFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
 		return
 	}
+
+	// Ask for confirmation
+	*confirming = true
+	fmt.Printf("\nYou have just received a request to store file '%s'. Do you want to store the file? (yes/no): ", fileData.FileName)
+
+	// Check if confirmation is received
+	for *confirmation != "yes" {
+		if *confirmation != "" {
+			http.Error(w, fmt.Sprintf("Client declined to store file '%s'.", fileData.FileName), http.StatusUnauthorized)
+			*confirmation = ""
+			*confirming = false
+			return
+		} 
+	}
+	*confirmation = ""
+	*confirming = false
 
 	// Create file
 	file, err := os.Create("./files/stored/" + fileData.FileName)
@@ -126,8 +158,8 @@ func storeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Requested client stored file %s successfully!\n", fileData.FileName)
-	fmt.Printf("\nStored file %s!\n", fileData.FileName)
+	fmt.Fprintf(w, "\nRequested client stored file %s successfully!\n", fileData.FileName)
+	fmt.Printf("\nStored file %s!\n\n> ", fileData.FileName)
 }
 
 func getFileOnce(ip, port, filename string) {
@@ -139,7 +171,12 @@ func getFileOnce(ip, port, filename string) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error: %s\n\n", resp.Status)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+		fmt.Printf("\nError: %s\n> ", body)
 		return
 	}
 
@@ -155,7 +192,7 @@ func getFileOnce(ip, port, filename string) {
 		return
 	}
 
-	fmt.Printf("File %s downloaded successfully!\n\n", filename)
+	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
 }
 
 func requestStorage(ip, port, filename string) {
@@ -187,6 +224,16 @@ func requestStorage(ip, port, filename string) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+		fmt.Printf("\nError: %s\n> ", body)
+		return
+	}
+
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -195,7 +242,7 @@ func requestStorage(ip, port, filename string) {
 	}
 
 	fmt.Println(string(body))
-	fmt.Print()
+	fmt.Print("> ")
 }
 
 // Ask user to enter a port and returns it
@@ -223,9 +270,13 @@ func getPort() string {
 }
 
 // Start HTTP server
-func startServer(port string, serverReady chan<- bool) {
-	http.HandleFunc("/requestFile/", sendFile)
-	http.HandleFunc("/storeFile/", storeFile)
+func startServer(port string, serverReady chan bool, confirming *bool, confirmation *string) {
+	http.HandleFunc("/requestFile/", func(w http.ResponseWriter, r *http.Request) {
+		sendFile(w, r, confirming, confirmation)
+	})
+	http.HandleFunc("/storeFile/", func(w http.ResponseWriter, r *http.Request) {
+		storeFile(w, r, confirming, confirmation)
+	})
 
 	fmt.Printf("Listening on port %s...\n\n", port)
 	serverReady <- true
@@ -233,7 +284,7 @@ func startServer(port string, serverReady chan<- bool) {
 }
 
 // Start CLI
-func startCLI() {
+func startCLI(confirming *bool, confirmation *string) {
 	fmt.Println("Dive In and Explore! Type 'help' for available commands.")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -255,17 +306,27 @@ func startCLI() {
 		command := parts[0]
 		args := parts[1:]
 
+		if *confirming {
+			switch command {
+			case "yes":
+				*confirmation = "yes"
+			default:
+				*confirmation = "no"
+			}
+			continue
+		}
+
 		switch command {
 		case "get":
 			if len(args) == 3 {
-				getFileOnce(args[0], args[1], args[2])
+				go getFileOnce(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: get <ip> <port> <filename>")
 				fmt.Println()
 			}
 		case "store":
 			if len(args) == 3 {
-				requestStorage(args[0], args[1], args[2])
+				go requestStorage(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: store <ip> <port> <filename>")
 				fmt.Println()
@@ -315,8 +376,10 @@ func main() {
 	port := getPort()
 
 	serverReady := make(chan bool)
-	go startServer(port, serverReady)
+	confirming := false
+	confirmation := ""
+	go startServer(port, serverReady, &confirming, &confirmation)
 	<-serverReady
 
-	startCLI()
+	startCLI(&confirming, &confirmation)
 }
