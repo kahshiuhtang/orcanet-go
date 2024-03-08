@@ -1,14 +1,14 @@
-# Producer/Consumer Nodes
+# Peer Node
 
 ## Requirements
 
-1) Clients uses RPC protocol in GO to send request
+1) Clients uses gRPC protocol in GO to ask for address of file
 
 2) User sends request to server for file
 
 3) User storing file will then send the file back
 
-4) User sending the request will then make a request to send tokens/coins
+4) User will then record the transaction by sending a message to the blockchain
  
 
 ## Assumptions
@@ -22,25 +22,79 @@
 
 ## Running
 
+First generate the gRPC files for GO. Make sure you are in the root of the project and run the command below.
+
+``` bash
+
+$ protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    fileshare/file_share.proto 
+```
+
 GO Version: 1.21.4
 
 ```bash
 
 $ go build
 
-$ ./client
+$ ./peer-node
 
 ```
 
-## Other Notes
+## gRPC API
 
-* Probably need to use GO's RPC library, probably most difficult
+* RecordFileRequestTransaction: Tell blockchain of a completed transaction
 
-* Use HTTP for sending requests and setting up server 
+* PlaceFileRequest: Ask market to tell you ALL possible locations where file is store 
 
-* How do I load a file in?
+* NotifyFileStore Tell market you will store a file for future access
 
-* Maybe some mechanism to figure out how many coins you have before you send
+* NotifyFileUnstore: Tell market you no longer have a specific file
+
+* SendFile: Send a File
+
+## HTTP Functionality
+
+Server should only look for two things:
+
+* Route /requestFile with a GET Request, parameter of `filename`, a string that represents name of file
+
+* Route /storeFile with a GET Request, similar to the route /requestFile
+
+Demo below. The client requests a file in the server's local directory.
+
+ 
+
+
+https://github.com/kahshiuhtang/PeerNodes/assets/78182536/321af8e3-0a5f-4731-9544-f67b3c4418e8
+
+
+## CLI interface
+
+Requesting a file:
+
+```bash
+$ get [ip] [port] [filename]
+```
+
+Storing a file:
+
+```bash
+$ store [ip] [address] [filename]
+```
+
+Listing all files stored for IPFS
+
+```bash
+$ list
+```
+
+Exiting Program
+
+```bash
+$ exit
+```
+
 
 
 
