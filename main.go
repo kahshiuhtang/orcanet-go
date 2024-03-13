@@ -14,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/cbergoon/speedtest-go"
 )
 
 const keyServerAddr = "serverAddr"
@@ -424,6 +426,27 @@ func startCLI(confirming *bool, confirmation *string) {
 		}
 	}
 }
+
+type NetworkStatus struct {
+	downloadSpeedMbps float64
+	uploadSpeedMbps   float64
+	latencyMs         float64
+}
+
+func getNetworkInfo() NetworkStatus {
+	user, _ := speedtest.FetchUserInfo()
+
+	serverList, _ := speedtest.FetchServerList(user)
+	targets, _ := serverList.FindServer([]int{})
+
+	for _, s := range targets {
+		s.PingTest()
+		s.DownloadTest()
+		s.UploadTest()
+		return NetworkStatus{latencyMs: float64(s.Latency), downloadSpeedMbps: s.DLSpeed, uploadSpeedMbps: s.ULSpeed}
+	}
+	return NetworkStatus{}
+}
 func getLocationData() string {
 	ipapiClient := http.Client{}
 
@@ -448,6 +471,7 @@ func getLocationData() string {
 }
 
 func main() {
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
