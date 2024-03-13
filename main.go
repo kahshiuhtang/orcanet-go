@@ -402,6 +402,8 @@ func startCLI(confirming *bool, confirmation *string) {
 				fmt.Println("Usage: import [filepath]")
 				fmt.Println()
 			}
+		case "location":
+			fmt.Println(getLocationData())
 		case "list":
 			// TO-DO
 		case "exit":
@@ -413,6 +415,7 @@ func startCLI(confirming *bool, confirmation *string) {
 			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
 			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" list                           List all files you are storing")
+			fmt.Println(" location						 Print your location")
 			fmt.Println(" exit                           Exit the program")
 			fmt.Println()
 		default:
@@ -445,7 +448,6 @@ func getLocationData() string {
 }
 
 func main() {
-	fmt.Println(getLocationData())
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
