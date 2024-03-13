@@ -143,6 +143,12 @@ func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirm
 	*confirmation = ""
 	*confirming = false
 
+	// Create the directory if it doesn't exist
+	err = os.MkdirAll("./files/stored/", 0755)
+	if err != nil {
+		return
+	}
+
 	// Create file
 	file, err := os.Create("./files/stored/" + fileData.FileName)
 	if err != nil {
@@ -180,6 +186,13 @@ func getFileOnce(ip, port, filename string) {
 		return
 	}
 
+	// Create the directory if it doesn't exist
+	err = os.MkdirAll("./files/requested/", 0755)
+	if err != nil {
+		return
+	}
+	
+	// Create file
 	out, err := os.Create("./files/requested/" + filename)
 	if err != nil {
 		return
@@ -243,6 +256,45 @@ func requestStorage(ip, port, filename string) {
 
 	fmt.Println(string(body))
 	fmt.Print("> ")
+}
+
+func importFile(filePath string) {
+	// Extract filename from the provided file path
+	_, fileName := filepath.Split(filePath)
+	if fileName == "" {
+		fmt.Print("\nProvided path is a directory, not a file\n\n> ")
+		return
+	}
+
+    // Open the source file
+    file, err := os.Open(filePath)
+    if err != nil {
+		fmt.Print("\nFile does not exist\n\n> ")
+        return
+    }
+    defer file.Close()
+
+	// Create the directory if it doesn't exist
+	err = os.MkdirAll("./files/stored/", 0755)
+	if err != nil {
+		return
+	}
+
+    // Save the file to the destination directory with the same filename
+    destinationPath := filepath.Join("./files/stored/", fileName)
+    destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
+    if err != nil {
+        return
+    }
+    defer destinationFile.Close()
+
+    // Copy the contents of the source file to the destination file
+    _, err = io.Copy(destinationFile, file)
+    if err != nil {
+        return
+    }
+
+	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
 
 // Ask user to enter a port and returns it
@@ -321,14 +373,21 @@ func startCLI(confirming *bool, confirmation *string) {
 			if len(args) == 3 {
 				go getFileOnce(args[0], args[1], args[2])
 			} else {
-				fmt.Println("Usage: get <ip> <port> <filename>")
+				fmt.Println("Usage: get [ip] [port] [filename>]")
 				fmt.Println()
 			}
 		case "store":
 			if len(args) == 3 {
 				go requestStorage(args[0], args[1], args[2])
 			} else {
-				fmt.Println("Usage: store <ip> <port> <filename>")
+				fmt.Println("Usage: store [ip] [port] [filename]")
+				fmt.Println()
+			}
+		case "import":
+			if len(args) == 1 {
+				go importFile(args[0])
+			} else {
+				fmt.Println("Usage: import [filepath]")
 				fmt.Println()
 			}
 		case "list":
@@ -338,8 +397,9 @@ func startCLI(confirming *bool, confirmation *string) {
 			return
 		case "help":
 			fmt.Println("COMMANDS:")
-			fmt.Println(" get <ip> <port> <filename>     Request a file")
-			fmt.Println(" store <ip> <port> <filename>   Request storage of a file")
+			fmt.Println(" get [ip] [port] [filename]     Request a file")
+			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
+			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" exit                           Exit the program")
 			fmt.Println()
