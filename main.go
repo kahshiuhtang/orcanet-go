@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -118,6 +119,17 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	fmt.Printf("\nFile %s sent!\n\n> ", filename)
 }
 
+type PeerNodeData struct {
+	isMe        bool
+	balance     float64
+	publicKey   string
+	location    string
+	isConnected bool
+}
+
+func getNodeInfo() {
+
+}
 func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Parse JSON object from request body
 	var fileData FileData
@@ -191,7 +203,7 @@ func getFileOnce(ip, port, filename string) {
 	if err != nil {
 		return
 	}
-	
+
 	// Create file
 	out, err := os.Create("./files/requested/" + filename)
 	if err != nil {
@@ -266,13 +278,13 @@ func importFile(filePath string) {
 		return
 	}
 
-    // Open the source file
-    file, err := os.Open(filePath)
-    if err != nil {
+	// Open the source file
+	file, err := os.Open(filePath)
+	if err != nil {
 		fmt.Print("\nFile does not exist\n\n> ")
-        return
-    }
-    defer file.Close()
+		return
+	}
+	defer file.Close()
 
 	// Create the directory if it doesn't exist
 	err = os.MkdirAll("./files/stored/", 0755)
@@ -280,19 +292,19 @@ func importFile(filePath string) {
 		return
 	}
 
-    // Save the file to the destination directory with the same filename
-    destinationPath := filepath.Join("./files/stored/", fileName)
-    destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
-    if err != nil {
-        return
-    }
-    defer destinationFile.Close()
+	// Save the file to the destination directory with the same filename
+	destinationPath := filepath.Join("./files/stored/", fileName)
+	destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return
+	}
+	defer destinationFile.Close()
 
-    // Copy the contents of the source file to the destination file
-    _, err = io.Copy(destinationFile, file)
-    if err != nil {
-        return
-    }
+	// Copy the contents of the source file to the destination file
+	_, err = io.Copy(destinationFile, file)
+	if err != nil {
+		return
+	}
 
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
@@ -409,8 +421,31 @@ func startCLI(confirming *bool, confirmation *string) {
 		}
 	}
 }
+func getLocationData() string {
+	ipapiClient := http.Client{}
+
+	req, err := http.NewRequest("GET", "https://ipapi.co/json/", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Set("User-Agent", "ipapi.co/#go-v1.4.01")
+
+	resp, err := ipapiClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(body)
+}
 
 func main() {
+	fmt.Println(getLocationData())
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
