@@ -94,6 +94,12 @@ Getting current peer node location
 $ location
 ```
 
+Testing network speeds
+
+```bash
+$ network
+```
+
 Exiting Program
 
 ```bash
