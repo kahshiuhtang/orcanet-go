@@ -406,6 +406,15 @@ func startCLI(confirming *bool, confirmation *string) {
 			}
 		case "location":
 			fmt.Println(getLocationData())
+		case "network":
+			fmt.Println("Testing Network Speeds...")
+			networkData := getNetworkInfo()
+			if networkData.success {
+				fmt.Printf("Latency: %fms, Download: %fMbps, Upload: %fMbps\n", networkData.latencyMs, networkData.downloadSpeedMbps, networkData.uploadSpeedMbps)
+			} else {
+				fmt.Println("Unable to test network speeds. Please try again")
+			}
+
 		case "list":
 			// TO-DO
 		case "exit":
@@ -418,6 +427,7 @@ func startCLI(confirming *bool, confirmation *string) {
 			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" location						 Print your location")
+			fmt.Println(" network						 Test speed of network")
 			fmt.Println(" exit                           Exit the program")
 			fmt.Println()
 		default:
@@ -428,6 +438,7 @@ func startCLI(confirming *bool, confirmation *string) {
 }
 
 type NetworkStatus struct {
+	success           bool
 	downloadSpeedMbps float64
 	uploadSpeedMbps   float64
 	latencyMs         float64
@@ -443,9 +454,9 @@ func getNetworkInfo() NetworkStatus {
 		s.PingTest()
 		s.DownloadTest()
 		s.UploadTest()
-		return NetworkStatus{latencyMs: float64(s.Latency), downloadSpeedMbps: s.DLSpeed, uploadSpeedMbps: s.ULSpeed}
+		return NetworkStatus{success: true, latencyMs: float64(s.Latency), downloadSpeedMbps: s.DLSpeed, uploadSpeedMbps: s.ULSpeed}
 	}
-	return NetworkStatus{}
+	return NetworkStatus{success: false}
 }
 func getLocationData() string {
 	ipapiClient := http.Client{}
