@@ -62,7 +62,6 @@ Server should only look for two things:
 * Route /storeFile with a GET Request, similar to the route /requestFile
 
 
-
 ## CLI interface
 
 Requesting a file:
@@ -77,10 +76,22 @@ Storing a file:
 $ store [ip] [address] [filename]
 ```
 
+Import a file:
+
+```bash
+$ import [filepath]
+```
+
 Listing all files stored for IPFS
 
 ```bash
 $ list
+```
+
+Getting current peer node location
+
+```bash
+$ location
 ```
 
 Exiting Program
