@@ -1,11 +1,10 @@
-package file_hash
+package hash
 
 import (
 	"bufio"
 	"crypto/sha256"
 	"io"
 	"os"
-	"peer-node/util"
 )
 
 type NameStore interface {
