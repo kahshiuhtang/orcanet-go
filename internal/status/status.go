@@ -15,6 +15,18 @@ type NetworkStatus struct {
 	LatencyMs         float64
 }
 
+type PeerNodeData struct {
+	isMe        bool
+	balance     float64
+	publicKey   string
+	location    string
+	isConnected bool
+}
+
+func getNodeInfo() {
+
+}
+
 func GetNetworkInfo() NetworkStatus {
 	user, _ := speedtest.FetchUserInfo()
 

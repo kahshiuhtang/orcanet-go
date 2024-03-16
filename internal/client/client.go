@@ -1,91 +1,145 @@
 package client
 
 import (
-	"context"
-	"flag"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"net/url"
-	pb "peer-node/fileshare"
-	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"os"
+	"path/filepath"
 )
 
-func RequestFileFromMarket(client pb.FileShareClient, fileDesc *pb.FileDesc) *pb.StorageIP {
-	log.Printf("Requesting IP For File (%s)", fileDesc.FileName)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	streamOfAddresses, err := client.PlaceFileRequest(ctx, fileDesc)
-	if err != nil {
-		log.Fatalf("client.requestFileStorage failed: %v", err)
-	}
-	var possible_candidates = []*pb.StorageIP{}
-	for {
-		storage_ip, err := streamOfAddresses.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("client.ListFeatures failed: %v", err)
-		}
-		log.Printf("File %s found on address: %s for the cost of %f",
-			storage_ip.FileName, storage_ip.Address, storage_ip.FileCost)
-		possible_candidates = append(possible_candidates, storage_ip)
-		if storage_ip.IsLastCandidate == true {
-			break
-		}
-	}
-	var best_candidate *pb.StorageIP = nil
-	for _, candidate := range possible_candidates {
-		if best_candidate == nil {
-			best_candidate = candidate
-		} else if best_candidate.FileCost < candidate.FileCost {
-			best_candidate = candidate
-		}
-	}
-	return best_candidate
+type FileData struct {
+	FileName string `json:"filename"`
+	Content  []byte `json:"content"`
 }
 
-func RequestFileFromProducer(baseURL string, filename string) bool {
-	encodedParams := url.Values{}
-	encodedParams.Add("filename", filename)
-	queryString := encodedParams.Encode()
-
-	// Construct the URL with the query string
-	urlWithQuery := fmt.Sprintf("%s?%s", baseURL, queryString)
-	resp, err := http.Get(urlWithQuery)
-
-	if err != nil {
-		log.Fatalln(err)
+func ImportFile(filePath string) {
+	// Extract filename from the provided file path
+	_, fileName := filepath.Split(filePath)
+	if fileName == "" {
+		fmt.Print("\nProvided path is a directory, not a file\n\n> ")
+		return
 	}
-	//We Read the response body on the line below.
+
+	// Open the source file
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Print("\nFile does not exist\n\n> ")
+		return
+	}
+	defer file.Close()
+
+	// Create the directory if it doesn't exist
+	err = os.MkdirAll("./files/stored/", 0755)
+	if err != nil {
+		return
+	}
+
+	// Save the file to the destination directory with the same filename
+	destinationPath := filepath.Join("./files/stored/", fileName)
+	destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return
+	}
+	defer destinationFile.Close()
+
+	// Copy the contents of the source file to the destination file
+	_, err = io.Copy(destinationFile, file)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
+}
+
+func GetFileOnce(ip, port, filename string) {
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
+	if err != nil {
+		fmt.Printf("Error: %s\n\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+		fmt.Printf("\nError: %s\n> ", body)
+		return
+	}
+
+	// Create the directory if it doesn't exist
+	err = os.MkdirAll("./files/requested/", 0755)
+	if err != nil {
+		return
+	}
+
+	// Create file
+	out, err := os.Create("./files/requested/" + filename)
+	if err != nil {
+		return
+	}
+	defer out.Close()
+
+	// Write response body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
+}
+
+func RequestStorage(ip, port, filename string) {
+	// Read file content
+	content, err := os.ReadFile("./files/documents/" + filename)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
+
+	// Create FileData struct
+	fileData := FileData{
+		FileName: filename,
+		Content:  content,
+	}
+
+	// Marshal FileData to JSON
+	jsonData, err := json.Marshal(fileData)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	// Send POST request to store file
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/storeFile/", ip, port), "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+		fmt.Printf("\nError: %s\n> ", body)
+		return
+	}
+
+	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println("Error reading response body:", err)
+		return
 	}
-	//Convert the body to type string
-	sb := string(body)
-	fmt.Println(sb)
-	return false
-}
 
-var (
-	marketAddr = flag.String("addr", "localhost:50051", "The market address in the format of host:port")
-)
-
-func main() {
-	flag.Parse()
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	conn, err := grpc.Dial(*marketAddr, opts...)
-	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
-	}
-	defer conn.Close()
-	// client := pb.NewFileShareClient(conn)
-
+	fmt.Println(string(body))
+	fmt.Print("> ")
 }
