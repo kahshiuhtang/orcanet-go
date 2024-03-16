@@ -11,3 +11,7 @@
 !util/
 !rsrc/
 !Makefile
+!bin/
+!cmd/
+!config/
+!internal/

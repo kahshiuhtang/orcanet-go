@@ -1,14 +1,14 @@
-module peer-node
+module orca-peer
 
 go 1.21.4
 
 require (
+	github.com/cbergoon/speedtest-go v1.1.0
 	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.32.0
 )
 
 require (
-	github.com/cbergoon/speedtest-go v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
