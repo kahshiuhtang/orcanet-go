@@ -102,19 +102,19 @@ func (ds *DataStore) DrivePut(hash_val string, data []byte) error {
 
 func (ds *DataStore) DriveEvict() {
 	entries, err := os.ReadDir(ds.path)
-	util.Assert(err == nil, "Todo handle directory read failure during drive eviction")
+	Assert(err == nil, "Todo handle directory read failure during drive eviction")
 
 	largest_file_hash := ""
 	largest_file_size := 0
 	for _, entry := range entries {
 		info, err := entry.Info()
-		util.Assert(err == nil, "Todo handle stat on dir entry fail")
+		Assert(err == nil, "Todo handle stat on dir entry fail")
 		if info.Size() > int64(largest_file_size) {
 			largest_file_hash = info.Name()
 		}
 	}
 	if largest_file_hash != "" {
-		util.Assert(os.Remove(ds.path+largest_file_hash) == nil, "Todo remove file failed")
+		Assert(os.Remove(ds.path+largest_file_hash) == nil, "Todo remove file failed")
 	}
 }
 
