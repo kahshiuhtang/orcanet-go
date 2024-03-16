@@ -40,12 +40,12 @@ func StartCLI() {
 		command := parts[0]
 		args := parts[1:]
 
-		if *confirming {
+		if confirming {
 			switch command {
 			case "yes":
-				*confirmation = "yes"
+				confirmation = "yes"
 			default:
-				*confirmation = "no"
+				confirmation = "no"
 			}
 			continue
 		}
