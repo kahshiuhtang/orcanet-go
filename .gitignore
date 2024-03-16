@@ -5,8 +5,6 @@
 !.gitignore
 !go.sum
 !fileshare
-!server/
-!client/
 !file_hash/
 !util/
 !rsrc/
@@ -15,3 +13,4 @@
 !cmd/
 !config/
 !internal/
+!files/
