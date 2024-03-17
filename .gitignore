@@ -14,3 +14,4 @@
 !config/
 !internal/
 !files/
+!test/
