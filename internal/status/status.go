@@ -29,6 +29,14 @@ type PeerNode struct {
 	Balance   float64
 	PublicKey string
 }
+type PeerNodeJSON struct {
+	PublicKey string `json:"public_key"`
+	Address   string `json:"ip_address"`
+	Location  string `json:"location"`
+}
+type PeerNodes struct {
+	Nodes []PeerNodeJSON `json:"peers"`
+}
 
 func GetNodeInfo() PeerNode {
 	jsonFile, err := os.Open("config/self.json")
@@ -55,8 +63,16 @@ func GetNodeInfo() PeerNode {
 	return me
 }
 
-func GetPeerNodeInfo() {
-
+func GetPeerNodeInfo() PeerNodes {
+	jsonFile, err := os.Open("config/peers.json")
+	if err != nil {
+		fmt.Println("Error on loading config, please try again")
+	}
+	var nodes PeerNodes
+	byteValue, _ := io.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &nodes)
+	defer jsonFile.Close()
+	return nodes
 }
 
 func GetNetworkInfo() NetworkStatus {
