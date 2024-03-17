@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 
 	pb "orca-peer/internal/fileshare"
 
 	"google.golang.org/grpc"
 )
-
-type testFilePeerServer struct {
-	pb.UnimplementedFileShareServer
-	savedAddress map[string][]*pb.StorageIP
-	savedFiles   map[string][]*pb.FileDesc // read-only after initialized
-
-	mu sync.Mutex // protects routeNotes
-}
 
 func (s *testFilePeerServer) PlaceFileRequest(file *pb.FileDesc, stream pb.FileShare_PlaceFileRequestServer) error {
 	//addresses := s.savedAddress[file.FileNameHash]

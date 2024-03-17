@@ -4,10 +4,19 @@ import (
 	"log"
 	orcaClient "orca-peer/internal/client"
 	pb "orca-peer/internal/fileshare"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+type testFilePeerServer struct {
+	pb.UnimplementedFileShareServer
+	savedAddress map[string][]*pb.StorageIP
+	savedFiles   map[string][]*pb.FileDesc // read-only after initialized
+
+	mu sync.Mutex // protects routeNotes
+}
 
 func main() {
 	serverIP := "localhost:50051"
