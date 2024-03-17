@@ -82,3 +82,23 @@ func DialRPC(serverAddr *string) pb.FileShareClient {
 	client := pb.NewFileShareClient(conn)
 	return client
 }
+
+func runRecordTransaction(client pb.FileShareClient, transaction *pb.FileRequestTransaction) *pb.TransactionACKResponse {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ackResponse, err := client.RecordFileRequestTransaction(ctx, transaction)
+	if err != nil {
+		log.Fatalf("client.RecordFileRequestTransaction failed: %v", err)
+	}
+	log.Printf("ACK Response: %v", ackResponse)
+	return ackResponse
+}
+
+func RecordTransactionWrapper(client pb.FileShareClient, transaction *pb.FileRequestTransaction) {
+	var ack = runRecordTransaction(client, transaction)
+	if ack.IsSuccess {
+		fmt.Printf("[Server]: Successfully recorded transaction in hash: %v", ack.BlockHash)
+	} else {
+		fmt.Println("[Server]: Unable to record transaction in blockchain")
+	}
+}

@@ -32,13 +32,13 @@ func ImportFile(filePath string) {
 	defer file.Close()
 
 	// Create the directory if it doesn't exist
-	err = os.MkdirAll("./files/stored/", 0755)
+	err = os.MkdirAll("./files", 0755)
 	if err != nil {
 		return
 	}
 
 	// Save the file to the destination directory with the same filename
-	destinationPath := filepath.Join("./files/stored/", fileName)
+	destinationPath := filepath.Join("./files", fileName)
 	destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return
