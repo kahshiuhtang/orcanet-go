@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -35,7 +34,7 @@ func RequestFileFromMarket(client pb.FileShareClient, fileDesc *pb.FileDesc) *pb
 		log.Printf("File %s found on address: %s for the cost of %f",
 			storage_ip.FileName, storage_ip.Address, storage_ip.FileCost)
 		possible_candidates = append(possible_candidates, storage_ip)
-		if storage_ip.IsLastCandidate == true {
+		if storage_ip.IsLastCandidate {
 			break
 		}
 	}
@@ -72,20 +71,14 @@ func RequestFileFromProducer(baseURL string, filename string) bool {
 	fmt.Println(sb)
 	return false
 }
-
-var (
-	marketAddr = flag.String("addr", "localhost:50051", "The market address in the format of host:port")
-)
-
-func main() {
-	flag.Parse()
+func DialRPC(serverAddr *string) pb.FileShareClient {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	conn, err := grpc.Dial(*marketAddr, opts...)
+	conn, err := grpc.Dial(*serverAddr, opts...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
-	// client := pb.NewFileShareClient(conn)
-
+	client := pb.NewFileShareClient(conn)
+	return client
 }
