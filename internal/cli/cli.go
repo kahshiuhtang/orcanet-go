@@ -7,6 +7,7 @@ import (
 	orcaClient "orca-peer/internal/client"
 	orcaServer "orca-peer/internal/server"
 	orcaStatus "orca-peer/internal/status"
+	orcaStore "orca-peer/internal/store"
 	"os"
 	"strings"
 )
@@ -84,7 +85,11 @@ func StartCLI() {
 			}
 
 		case "list":
-			// TO-DO
+			files := orcaStore.GetAllFiles()
+			fmt.Println("Files found:")
+			for _, file := range files {
+				fmt.Println(file.Name)
+			}
 		case "exit":
 			fmt.Println("Exiting...")
 			return
@@ -94,8 +99,8 @@ func StartCLI() {
 			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
 			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" list                           List all files you are storing")
-			fmt.Println(" location						 Print your location")
-			fmt.Println(" network						 Test speed of network")
+			fmt.Println(" location                       Print your location")
+			fmt.Println(" network                        Test speed of network")
 			fmt.Println(" exit                           Exit the program")
 			fmt.Println()
 		default:
