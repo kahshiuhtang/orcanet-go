@@ -2,17 +2,13 @@ package server
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"orca-peer/internal/fileshare"
 	pb "orca-peer/internal/fileshare"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -122,49 +118,5 @@ func NotifyUnstoreWrapper(client pb.FileShareClient, file_name_hash string, file
 		fmt.Printf("[Server]: Market acknowledged stopping storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
 	} else {
 		fmt.Printf("[Server]: Unable to notify market that we are stopping the storage of file %s with hash %s \n", ack.FileName, ack.FileHash)
-	}
-}
-
-func setupProducer(gRPCPort int, httpPort int) *fileShareServerNode {
-	s := &fileShareServerNode{savedFiles: make(map[string][]*pb.FileDesc)}
-	// s.loadMappings(*jsonDBFile) // Have a load and save mappings
-	http.HandleFunc("/file", sendFileToConsumer)
-	fmt.Println("[Server]: Listening On Port" + strconv.Itoa(httpPort))
-	fmt.Println("[Server]: Press CTRL + C to quit.")
-	go func() {
-		for {
-			http.ListenAndServe(":"+strconv.Itoa(httpPort), nil)
-		}
-	}()
-	return s
-}
-
-// Can add back in TLS later
-var (
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	gRPCPort   = flag.Int("gport", 50051, "The gRPC port for send/receive gRPC")
-	httpPort   = flag.Int("hport", 50052, "The server port for listening for HTTP requests")
-)
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", getRoot)
-	mux.HandleFunc("/requestFile", getFile)
-
-	ctx := context.Background()
-	server := &http.Server{
-		Addr:    ":3333",
-		Handler: mux,
-		BaseContext: func(l net.Listener) context.Context {
-			ctx = context.WithValue(ctx, keyServerAddr, l.Addr().String())
-			return ctx
-		},
-	}
-
-	err := server.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server closed\n")
-	} else if err != nil {
-		fmt.Printf("error listening for server: %s\n", err)
 	}
 }

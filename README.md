@@ -92,6 +92,8 @@ $ exit
 
 * RecordFileRequestTransaction: Tell blockchain of a completed transaction
 
+* RequestAllAvailableFileNames
+
 * PlaceFileRequest: Ask market to tell you ALL possible locations where file is store 
 
 * NotifyFileStore Tell market you will store a file for future access

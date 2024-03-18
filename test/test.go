@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"log"
 	orcaClient "orca-peer/internal/client"
 	pb "orca-peer/internal/fileshare"
@@ -49,5 +50,8 @@ func RunTestServer() {
 		FileIpLocation:    "localhost:50051",
 		SecondsTimeout:    100,
 	})
-	time.Sleep(5000 * time.Millisecond)
+	for {
+		fmt.Println("Waiting...")
+		time.Sleep(10 * time.Second) // or runtime.Gosched() or similar per @misterbee
+	}
 }

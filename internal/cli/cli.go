@@ -56,7 +56,7 @@ func StartCLI() {
 			if len(args) == 3 {
 				go orcaClient.GetFileOnce(args[0], args[1], args[2])
 			} else {
-				fmt.Println("Usage: get [ip] [port] [filename>]")
+				fmt.Println("Usage: get [ip] [port] [filename]")
 				fmt.Println()
 			}
 		case "store":
@@ -85,8 +85,8 @@ func StartCLI() {
 			}
 
 		case "list":
-			files := orcaStore.GetAllFiles()
-			fmt.Println("Files found:")
+			files := orcaStore.GetAllLocalFiles()
+			fmt.Print("Files found:")
 			for _, file := range files {
 				fmt.Println(file.Name)
 			}

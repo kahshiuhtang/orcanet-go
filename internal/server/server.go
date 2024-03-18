@@ -32,9 +32,9 @@ func Init() {
 	go func() {
 		err := server.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("server closed\n")
+			fmt.Printf("Server closed\n")
 		} else if err != nil {
-			fmt.Printf("error listening for server: %s\n", err)
+			fmt.Printf("Error listening for server: %s\n", err)
 		}
 	}()
 }
