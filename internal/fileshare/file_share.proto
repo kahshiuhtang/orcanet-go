@@ -12,7 +12,7 @@ service FileShare{
     // Consumer --> Market
     rpc PlaceFileRequest (FileDesc) returns (stream StorageIP);
     // Consumer --> Market
-    rpc RequestAllAvailableFiles (StorageIP) returns (stream FileDesc);
+    rpc RequestAllAvailableFileNames (StorageIP) returns (stream FileDesc);
     // Producer --> Market
     rpc NotifyFileStore(FileDesc) returns (StorageACKResponse);
     // Market --> Producer ?? Maybe Market --> Consumer instead
