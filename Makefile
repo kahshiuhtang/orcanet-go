@@ -3,13 +3,10 @@ build:
 
 run:
 	bin/node
-
-build_tests:
-	go build -o bin/tests test/test.go test/market.go test/blockchain.go
 	
-run_tests:	
-	bin/tests
+testrun:	
+	bin/node -test
 
-test: build_tests run_tests
+test: build testrun
 
 all: build run

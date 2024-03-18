@@ -3,9 +3,9 @@ package test
 import (
 	"log"
 	orcaClient "orca-peer/internal/client"
-
 	pb "orca-peer/internal/fileshare"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,7 +19,7 @@ type testFilePeerServer struct {
 	mu sync.Mutex // protects routeNotes
 }
 
-func main() {
+func RunTestServer() {
 	serverIP := "localhost:50051"
 	go SetupTestMarket()
 	var opts []grpc.DialOption
@@ -33,10 +33,10 @@ func main() {
 	client := pb.NewFileShareClient(conn)
 	orcaClient.RequestFileFromMarket(client, &pb.FileDesc{})
 
-	serverIP = "localhost:50052"
-	go SetupTestMarket()
+	blockchainIP := "localhost:50052"
+	go SetupTestBlockchain()
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	conn, err = grpc.Dial(serverIP, opts...)
+	conn, err = grpc.Dial(blockchainIP, opts...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
@@ -49,4 +49,5 @@ func main() {
 		FileIpLocation:    "localhost:50051",
 		SecondsTimeout:    100,
 	})
+	time.Sleep(5000 * time.Millisecond)
 }

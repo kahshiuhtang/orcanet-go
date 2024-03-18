@@ -15,7 +15,7 @@ func (s *testFilePeerServer) RecordFileRequestTransaction(ctx context.Context, t
 	return &pb.TransactionACKResponse{IsSuccess: true, BlockHash: "abc", Timestamp: 10.0, MarketId: "Market1"}, nil
 }
 func newBlockchainServer() *testFilePeerServer {
-	s := &testFilePeerServer{savedFiles: make(map[string][]*pb.FileDesc)}
+	s := &testFilePeerServer{}
 	return s
 }
 
