@@ -14,7 +14,7 @@ import (
 type testFilePeerServer struct {
 	pb.UnimplementedFileShareServer
 	savedAddress map[string][]*pb.StorageIP
-	savedFiles   map[string][]*pb.FileDesc // read-only after initialized
+	savedFiles   []*pb.FileDesc // read-only after initialized
 
 	mu sync.Mutex // protects routeNotes
 }
