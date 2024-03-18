@@ -11,6 +11,8 @@ service FileShare{
     rpc RecordFileRequestTransaction(FileRequestTransaction) returns (TransactionACKResponse);
     // Consumer --> Market
     rpc PlaceFileRequest (FileDesc) returns (stream StorageIP);
+    // Consumer --> Market
+    rpc RequestAllAvailableFiles (StorageIP) returns (stream FileDesc);
     // Producer --> Market
     rpc NotifyFileStore(FileDesc) returns (StorageACKResponse);
     // Market --> Producer ?? Maybe Market --> Consumer instead
@@ -27,6 +29,13 @@ message FileRequestTransaction{
     string receiver_id = 5;
     string file_ip_location = 6;
     int64 seconds_timeout = 7;
+}
+
+message FileLocation{
+    int64 file_byte_size = 1;
+    string file_hash_name = 2;
+    float cost = 3;
+    string address = 4;
 }
 
 message TransactionACKResponse{
