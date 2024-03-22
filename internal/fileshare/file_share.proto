@@ -1,5 +1,5 @@
 syntax = "proto3";
-
+import "google/protobuf/empty.proto";
 option go_package = "peer-node/fileshare";
 option java_multiple_files = true;
 
@@ -10,7 +10,11 @@ service FileShare{
     // Producer/Consumer --> Blockchain
     rpc RecordFileRequestTransaction(FileRequestTransaction) returns (TransactionACKResponse);
     // Consumer --> Market
-    rpc PlaceFileRequest (FileDesc) returns (stream StorageIP);
+    // register a file on the market
+    rpc RegisterFile (RegisterFileRequest) returns (google.protobuf.Empty) {}
+
+    // check for holders of a file. returns a list of users
+    rpc CheckHolders (CheckHoldersRequest) returns (HoldersResponse) {}
     // Consumer --> Market
     rpc RequestAllAvailableFileNames (StorageIP) returns (stream FileDesc);
     // Producer --> Market
@@ -19,6 +23,29 @@ service FileShare{
     rpc NotifyFileUnstore(FileDesc) returns (StorageACKResponse);
     // Consumer --> Producer
     rpc SendFile(FileDesc) returns (FileDesc);
+}
+message User {
+  string id = 1;
+  string name = 2;
+
+  string ip = 3;
+  int32 port = 4;
+
+  // price per mb for a file
+  int64 price = 5;
+}
+
+message CheckHoldersRequest {
+  string fileHash = 1;
+}
+
+message RegisterFileRequest {
+  User user = 1;
+  string fileHash = 2;
+}
+
+message HoldersResponse {
+  repeated User holders = 1;
 }
 
 message FileRequestTransaction{
