@@ -32,7 +32,7 @@ func RunTestServer() {
 	}
 	defer conn.Close()
 	client := pb.NewFileShareClient(conn)
-	orcaClient.RequestFileFromMarket(client, &pb.FileDesc{})
+	orcaClient.RequestFileFromMarket(client, &pb.CheckHoldersRequest{})
 
 	blockchainIP := "localhost:50052"
 	go SetupTestBlockchain()

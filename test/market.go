@@ -10,16 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (s *testFilePeerServer) PlaceFileRequest(file *pb.FileDesc, stream pb.FileShare_PlaceFileRequestServer) error {
-	//addresses := s.savedAddress[file.FileNameHash]
-	addresses := s.savedAddress["file1"]
-	for _, feature := range addresses {
-		if err := stream.Send(feature); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 func (s *testFilePeerServer) RequestAllAvailableFileNames(address *pb.StorageIP, stream pb.FileShare_RequestAllAvailableFileNamesServer) error {
 	for _, feature := range s.savedFiles {
 		if err := stream.Send(feature); err != nil {
