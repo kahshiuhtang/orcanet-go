@@ -12,7 +12,9 @@ import (
 	"strings"
 )
 
-func StartCLI() {
+func StartCLI(bootstrapAddress *string) {
+	fmt.Println("Loading...")
+	ctx, dht := orcaServer.CreateDHTConnection(bootstrapAddress)
 	fmt.Println("Welcome to Orcanet!")
 	fmt.Println("Dive In and Explore! Type 'help' for available commands.")
 	port := getPort()
@@ -57,6 +59,20 @@ func StartCLI() {
 				go orcaClient.GetFileOnce(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: get [ip] [port] [filename]")
+				fmt.Println()
+			}
+		case "getKey":
+			if len(args) == 1 {
+				go orcaServer.SearchKey(ctx, dht, args[0])
+			} else {
+				fmt.Println("Usage: getKey [key]")
+				fmt.Println()
+			}
+		case "putKey":
+			if len(args) == 2 {
+				go orcaServer.PlaceKey(ctx, dht, args[0], args[1])
+			} else {
+				fmt.Println("Usage: putKey [key] [value]")
 				fmt.Println()
 			}
 		case "store":
