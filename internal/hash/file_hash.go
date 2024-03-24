@@ -3,7 +3,9 @@ package hash
 import (
 	"bufio"
 	"crypto/sha256"
+	"fmt"
 	"io"
+	"log"
 	"os"
 )
 
@@ -32,6 +34,23 @@ type DataStore struct {
 	buf_cap    int
 	drive_size int
 	drive_cap  int
+}
+
+func HashFile(address string) []byte {
+	f, err := os.Open(address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%x", h.Sum(nil))
+	return h.Sum(nil)
+
 }
 
 func (nmp *NameMap) GetFileHash(name string) string {
