@@ -139,18 +139,21 @@ func PlaceKey(ctx context.Context, kDHT *dht.IpfsDHT, putKey string, putValue st
 	}
 	fmt.Println("Put key: ", putKey+" Value: "+putValue)
 }
-func SearchKey(ctx context.Context, kDHT *dht.IpfsDHT, searchKey string) {
+func SearchKey(ctx context.Context, kDHT *dht.IpfsDHT, searchKey string) []string {
 	valueStream, err := kDHT.SearchValue(ctx, "orcanet/market/"+searchKey)
 	fmt.Println("Searching for " + searchKey)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		time.Sleep(5 * time.Second)
-		return
+		return nil
 	}
 	time.Sleep(5 * time.Second)
+	allAddress := make([]string, 0)
 	for byteArray := range valueStream {
+		allAddress = append(allAddress, string(byteArray))
 		fmt.Println(string(byteArray))
 	}
+	return allAddress
 }
 func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertise string) {
 	routingDiscovery := drouting.NewRoutingDiscovery(kDHT)
@@ -158,7 +161,7 @@ func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertis
 
 	// Look for others who have announced and attempt to connect to them
 	for {
-		fmt.Println("Searching for peers...")
+		//fmt.Println("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, advertise)
 		if err != nil {
 			panic(err)
@@ -171,7 +174,7 @@ func discoverPeers(ctx context.Context, h host.Host, kDHT *dht.IpfsDHT, advertis
 			if err != nil {
 				fmt.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
 			} else {
-				fmt.Println("Connected to:", peer.ID)
+				// fmt.Println("Connected to:", peer.ID)
 			}
 		}
 		time.Sleep(time.Second * 10)
