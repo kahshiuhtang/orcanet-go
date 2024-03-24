@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	orcaClient "orca-peer/internal/client"
+	orcaHash "orca-peer/internal/hash"
 	orcaServer "orca-peer/internal/server"
 	orcaStatus "orca-peer/internal/status"
 	orcaStore "orca-peer/internal/store"
@@ -73,6 +74,34 @@ func StartCLI(bootstrapAddress *string) {
 				go orcaServer.PlaceKey(ctx, dht, args[0], args[1])
 			} else {
 				fmt.Println("Usage: putKey [key] [value]")
+				fmt.Println()
+			}
+		case "fileGet":
+			if len(args) == 1 {
+				go func() {
+					addresses := orcaServer.SearchKey(ctx, dht, args[0])
+					for _, address := range addresses {
+						addressParts := strings.Split(address, ":")
+						if len(addressParts) == 2 {
+							orcaClient.GetFileOnce(addressParts[0], addressParts[1], args[0])
+						} else {
+							fmt.Println("Error, got invalid address from DHT")
+						}
+					}
+				}()
+			} else {
+				fmt.Println("Usage: fileGet [file hash]")
+				fmt.Println()
+			}
+		case "fileStore":
+			if len(args) == 1 {
+				go func() {
+					fileHash := string(orcaHash.HashFile(args[0]))
+					address := "localhost" + ":" + port
+					orcaServer.PlaceKey(ctx, dht, fileHash, address)
+				}()
+			} else {
+				fmt.Println("Usage: fileStore [file path]")
 				fmt.Println()
 			}
 		case "store":
