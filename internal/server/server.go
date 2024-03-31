@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,11 +9,16 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 )
 
 const keyServerAddr = "serverAddr"
+
+type Server struct {
+	storage *hash.DataStore
+}
 
 func Init() {
 
@@ -41,11 +47,14 @@ func Init() {
 
 // Start HTTP server
 func StartServer(port string, serverReady chan bool, confirming *bool, confirmation *string) {
+	server := Server{
+		storage: hash.NewDataStore("files/stored/"),
+	}
 	http.HandleFunc("/requestFile/", func(w http.ResponseWriter, r *http.Request) {
-		sendFile(w, r, confirming, confirmation)
+		server.sendFile(w, r, confirming, confirmation)
 	})
 	http.HandleFunc("/storeFile/", func(w http.ResponseWriter, r *http.Request) {
-		storeFile(w, r, confirming, confirmation)
+		server.storeFile(w, r, confirming, confirmation)
 	})
 
 	fmt.Printf("Listening on port %s...\n\n", port)
@@ -53,7 +62,7 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	http.ListenAndServe(":"+port, nil)
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
+func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Extract filename from URL path
 	filename := r.URL.Path[len("/requestFile/"):]
 
@@ -74,12 +83,11 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	*confirming = false
 
 	// Open the file
-	file, err := os.Open("./files/stored/" + filename)
+	file_data, err := server.storage.GetFile(filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	defer file.Close()
 
 	// Set content type
 	contentType := "application/octet-stream"
@@ -97,7 +105,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	w.Header().Set("Content-Type", contentType)
 
 	// Copy file contents to response body
-	_, err = io.Copy(w, file)
+	_, err = io.Copy(w, bytes.NewBuffer(file_data))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -111,7 +119,7 @@ type FileData struct {
 	Content  []byte `json:"content"`
 }
 
-func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
+func (server *Server) storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Parse JSON object from request body
 	var fileData FileData
 	err := json.NewDecoder(r.Body).Decode(&fileData)
@@ -136,29 +144,15 @@ func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirm
 	*confirmation = ""
 	*confirming = false
 
-	// Create the directory if it doesn't exist
-	err = os.MkdirAll("./files/stored/", 0755)
-	if err != nil {
-		return
-	}
-
 	// Create file
-	file, err := os.Create("./files/stored/" + fileData.FileName)
+	file_hash, err := server.storage.PutFile(fileData.Content)
 	if err != nil {
 		http.Error(w, "Failed to create file", http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
 
-	// Write content to file
-	_, err = file.Write(fileData.Content)
-	if err != nil {
-		http.Error(w, "Failed to write to file", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprintf(w, "\nRequested client stored file %s successfully!\n", fileData.FileName)
-	fmt.Printf("\nStored file %s!\n\n> ", fileData.FileName)
+	fmt.Fprintf(w, "%s", file_hash)
+	fmt.Printf("\nStored file %s hash %s!\n\n> ", fileData.FileName, file_hash)
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {

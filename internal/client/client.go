@@ -6,16 +6,27 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 )
+
+type Client struct {
+	name_map hash.NameMap
+}
+
+func NewClient(path string) *Client {
+	return &Client{
+		name_map: *hash.NewNameStore(path),
+	}
+}
 
 type FileData struct {
 	FileName string `json:"filename"`
 	Content  []byte `json:"content"`
 }
 
-func ImportFile(filePath string) {
+func (client *Client) ImportFile(filePath string) {
 	// Extract filename from the provided file path
 	_, fileName := filepath.Split(filePath)
 	if fileName == "" {
@@ -54,8 +65,13 @@ func ImportFile(filePath string) {
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
 
-func GetFileOnce(ip, port, filename string) {
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
+func (client *Client) GetFileOnce(ip, port, filename string) {
+	file_hash := client.name_map.GetFileHash(filename)
+	if file_hash == "" {
+		fmt.Println("Error: do not have hash for the file")
+		return
+	}
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, file_hash))
 	if err != nil {
 		fmt.Printf("Error: %s\n\n", err)
 		return
@@ -94,7 +110,7 @@ func GetFileOnce(ip, port, filename string) {
 	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
 }
 
-func RequestStorage(ip, port, filename string) {
+func (client *Client) RequestStorage(ip, port, filename string) {
 	// Read file content
 	content, err := os.ReadFile("./files/documents/" + filename)
 	if err != nil {
@@ -139,6 +155,7 @@ func RequestStorage(ip, port, filename string) {
 		fmt.Println("Error reading response body:", err)
 		return
 	}
+	client.name_map.PutFileHash(filename, string(body))
 
 	fmt.Println(string(body))
 	fmt.Print("> ")
