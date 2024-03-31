@@ -88,6 +88,8 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 		contentType = "text/plain"
 	case filename[len(filename)-5:] == ".json":
 		contentType = "application/json"
+	case filename[len(filename)-4:] == ".mp4":
+		contentType = "video/mp4"
 	}
 
 	// Set content disposition header
