@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"aead.dev/minisign"
 )
 
 type FileData struct {
@@ -71,11 +72,37 @@ func GetFileOnce(ip, port, filename string) {
 		fmt.Printf("\nError: %s\n> ", body)
 		return
 	}
+	// Get the headers
+	headers := resp.Header
+
+	// Print the headers
+	fmt.Println("Headers:")
+	for key, values := range headers {
+		for _, value := range values {
+			fmt.Printf("%s: %s\n", key, value)
+		}
+	}
+
+	// Extract the headers
+	message := headers["X-Message"][0]
+	signature := headers["X-Signature"][0]
+	rawPublicKey := headers["X-Publickey"][0]
+	var publicKey minisign.PublicKey
+	if err := publicKey.UnmarshalText([]byte(rawPublicKey)); err != nil {
+		panic(err) // TODO: error handling
+	}
+
+	// verify the file
+	if minisign.Verify(publicKey, []byte(message), []byte(signature)) {
+		fmt.Println(string(message))
+	} else{
+		fmt.Println("File not verified")
+	}
 
 	// Create the directory if it doesn't exist
 	err = os.MkdirAll("./files/requested/", 0755)
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	// Create file

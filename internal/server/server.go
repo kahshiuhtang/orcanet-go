@@ -10,6 +10,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"bufio"
+	"crypto/rand"
+	"aead.dev/minisign"
+	"log"
 )
 
 const keyServerAddr = "serverAddr"
@@ -81,6 +85,40 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	}
 	defer file.Close()
 
+	// Get the file size
+	stat, err := file.Stat()
+	if err != nil {
+	   fmt.Println(err)
+	   return
+	}
+ 
+	// Read the file into a byte slice
+	bs := make([]byte, stat.Size())
+	_, err = bufio.NewReader(file).Read(bs)
+	if err != nil && err != io.EOF {
+	   fmt.Println(err)
+	   return
+	}
+	fmt.Println(bs)
+
+	// Generate a new minisign private / public key pair.
+	publicKey, privateKey, err := minisign.GenerateKey(rand.Reader)
+	if err != nil {
+		panic(err) // TODO: error handling
+	}
+	fmt.Println("Public Key:", publicKey)
+
+	// Sign bytes with the private key
+	message := []byte(bs)
+	signature := minisign.Sign(privateKey, message)
+	fmt.Println("singature:", signature)
+
+	if !minisign.Verify(publicKey, message, signature) {
+		log.Fatalln("signature verification failed")
+	} else{
+		fmt.Println("signature verification succeeded")
+	}
+
 	// Set content type
 	contentType := "application/octet-stream"
 	switch {
@@ -95,6 +133,9 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	// Set content disposition header
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("X-Signature", string(signature))
+	w.Header().Set("X-PublicKey", publicKey.String())
+	w.Header().Set("X-Message", string(message))
 
 	// Copy file contents to response body
 	_, err = io.Copy(w, file)
