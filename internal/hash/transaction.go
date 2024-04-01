@@ -6,12 +6,28 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
 )
 
+func GeneratePriceBytes(price float64) []byte {
+	jsonData := map[string]interface{}{
+		"key1": price,
+	}
+	// Marshal JSON object to byte array
+	jsonBytes, err := json.Marshal(jsonData)
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		return nil
+	}
+	return jsonBytes
+}
+func OpenTransactionFile(message []byte, pubKey *rsa.PublicKey) {
+
+}
 func GenerateKeyPair() (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(rand.Reader, 4096)
 }
