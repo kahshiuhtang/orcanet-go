@@ -95,6 +95,8 @@ func SendTransaction(price float64, ip string, port string, publicKey *rsa.Publi
 	if err != nil {
 		fmt.Println("Error sending request:", err)
 		return
+	} else {
+		fmt.Println("Send Request")
 	}
 	defer resp.Body.Close()
 

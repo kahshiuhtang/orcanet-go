@@ -52,6 +52,7 @@ func Init() {
 }
 func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
+	fmt.Println("Handling a transaction...")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
