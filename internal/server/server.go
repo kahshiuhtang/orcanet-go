@@ -15,6 +15,7 @@ import (
 	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
+	"time"
 
 	"aead.dev/minisign"
 )
@@ -85,12 +86,31 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Unable to unmarshalling public key:", err)
 		return
 	}
+	timestamp := time.Now()
+	timestampStr := timestamp.Format(time.RFC3339)
+	err = os.WriteFile("./files/transactions/"+timestampStr, body, 0644)
+	if err != nil {
+		fmt.Println("Error writing transaction to file:", err)
+		return
+	}
 	fmt.Println("Data in struct:", data)
 	error := hash.VerifySignature(data.UnlockedTransaction, data.Bytes, publicKey)
 	if error != nil {
 		fmt.Println("Properly Hashed Transaction")
 	} else {
 		fmt.Println("Did not properly hash transaction")
+	}
+	var transaction Transaction
+	err = json.Unmarshal(data.UnlockedTransaction, &transaction)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	} else {
+		fmt.Println("Transaction JSON:")
+		fmt.Println("Sent Amount:")
+		fmt.Println(transaction.Price)
+		fmt.Println("UUID:")
+		fmt.Println(transaction.Uuid)
 	}
 	fmt.Println("> ")
 }
