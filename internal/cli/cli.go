@@ -139,10 +139,26 @@ func StartCLI(bootstrapAddress *string) {
 		case "exit":
 			fmt.Println("Exiting...")
 			return
+		case "getdir":
+			if len(args) == 3 {
+				go client.GetDirectory(args[0], args[1], args[2])
+			} else {
+				fmt.Println("Usage: getdir [ip] [port] [path]")
+				fmt.Println()
+			}
+		case "storedir":
+			if len(args) == 3 {
+				go client.StoreDirectory(args[0], args[1], args[2])
+			} else {
+				fmt.Println("Usage: storedir [ip] [port] [path]")
+				fmt.Println()
+			}
 		case "help":
 			fmt.Println("COMMANDS:")
 			fmt.Println(" get [ip] [port] [filename]     Request a file")
 			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
+			fmt.Println(" getdir [ip] [port] [path]     Request a directory")
+			fmt.Println(" storedir [ip] [port] [path]   Request storage of a directory")
 			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" location                       Print your location")
