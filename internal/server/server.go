@@ -1,21 +1,22 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
-	"bufio"
-	"crypto/rand"
+
 	"aead.dev/minisign"
-	"log"
 )
 
 const keyServerAddr = "serverAddr"
@@ -92,20 +93,24 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-
+	file, err := os.Open(filename)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	// Get the file size
 	stat, err := file.Stat()
 	if err != nil {
-	   fmt.Println(err)
-	   return
+		fmt.Println(err)
+		return
 	}
- 
+
 	// Read the file into a byte slice
 	bs := make([]byte, stat.Size())
 	_, err = bufio.NewReader(file).Read(bs)
 	if err != nil && err != io.EOF {
-	   fmt.Println(err)
-	   return
+		fmt.Println(err)
+		return
 	}
 	fmt.Println(bs)
 
@@ -123,7 +128,7 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 
 	if !minisign.Verify(publicKey, message, signature) {
 		log.Fatalln("signature verification failed")
-	} else{
+	} else {
 		fmt.Println("signature verification succeeded")
 	}
 

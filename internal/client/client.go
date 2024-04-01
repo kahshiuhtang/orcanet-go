@@ -9,6 +9,7 @@ import (
 	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
+
 	"aead.dev/minisign"
 )
 
@@ -111,7 +112,7 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 	// verify the file
 	if minisign.Verify(publicKey, []byte(message), []byte(signature)) {
 		fmt.Println(string(message))
-	} else{
+	} else {
 		fmt.Println("File not verified")
 	}
 
