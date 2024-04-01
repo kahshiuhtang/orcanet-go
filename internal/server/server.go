@@ -16,12 +16,15 @@ import (
 
 const keyServerAddr = "serverAddr"
 
+var (
+	eventChannel chan bool
+)
+
 type Server struct {
 	storage *hash.DataStore
 }
 
 func Init() {
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
@@ -106,11 +109,13 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("UUID:")
 		fmt.Println(transaction.Uuid)
 	}
+	eventChannel <- true
 	fmt.Println("> ")
 }
 
 // Start HTTP server
 func StartServer(port string, serverReady chan bool, confirming *bool, confirmation *string) {
+	eventChannel = make(chan bool)
 	server := Server{
 		storage: hash.NewDataStore("files/stored/"),
 	}
@@ -147,7 +152,7 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	*confirmation = ""
 	*confirming = false
 
-	file, err := os.Open(filename)
+	file, err := os.Open("./files/" + filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -177,6 +182,8 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	w.Header().Set("Content-Type", contentType)
 
 	const chunkSize = 1024
+	fmt.Println("File size: ")
+	fmt.Println(stat.Size())
 	if stat.Size() > chunkSize {
 		fmt.Println("Must serve in chunks")
 		buffer := make([]byte, chunkSize)
@@ -196,13 +203,14 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-
+			fmt.Println("Sending chunk...")
 			// Write the 10-byte chunk to the response
+			<-eventChannel
 			w.Write(buffer[:n])
 			//w.Write([]byte("\n@@@@\n"))
 		}
 	} else {
-
+		fmt.Println("sending in one piece")
 		// Copy file contents to response body
 		_, err = io.Copy(w, file)
 		if err != nil {

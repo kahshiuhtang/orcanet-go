@@ -112,12 +112,14 @@ func SendTransaction(price float64, ip string, port string, publicKey *rsa.Publi
 
 }
 func (client *Client) GetFileOnce(ip, port, filename string) {
-	file_hash := client.name_map.GetFileHash(filename)
-	if file_hash == "" {
-		fmt.Println("Error: do not have hash for the file")
-		return
-	}
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, file_hash))
+	/*
+		file_hash := client.name_map.GetFileHash(filename)
+		if file_hash == "" {
+			fmt.Println("Error: do not have hash for the file")
+			return
+		}
+	*/
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
 	if err != nil {
 		fmt.Printf("Error: %s\n\n", err)
 		return
