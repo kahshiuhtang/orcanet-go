@@ -16,8 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"aead.dev/minisign"
 )
 
 const keyServerAddr = "serverAddr"
@@ -164,38 +162,13 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	// Get the file size
+
+	defer file.Close()
+
 	stat, err := file.Stat()
 	if err != nil {
-		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// Read the file into a byte slice
-	bs := make([]byte, stat.Size())
-	_, err = bufio.NewReader(file).Read(bs)
-	if err != nil && err != io.EOF {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(bs)
-
-	// Generate a new minisign private / public key pair.
-	publicKey, privateKey, err := minisign.GenerateKey(rand.Reader)
-	if err != nil {
-		panic(err) // TODO: error handling
-	}
-	fmt.Println("Public Key:", publicKey)
-
-	// Sign bytes with the private key
-	message := []byte(bs)
-	signature := minisign.Sign(privateKey, message)
-	fmt.Println("singature:", signature)
-
-	if !minisign.Verify(publicKey, message, signature) {
-		log.Fatalln("signature verification failed")
-	} else {
-		fmt.Println("signature verification succeeded")
 	}
 
 	// Set content type
@@ -212,15 +185,42 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	// Set content disposition header
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("X-Signature", string(signature))
-	w.Header().Set("X-PublicKey", publicKey.String())
-	w.Header().Set("X-Message", string(message))
 
-	// Copy file contents to response body
-	_, err = io.Copy(w, bytes.NewBuffer(file_data))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	const chunkSize = 1024
+	if stat.Size() > chunkSize {
+		fmt.Println("Must serve in chunks")
+		buffer := make([]byte, chunkSize)
+		for {
+			//	time.Sleep(1 * time.Second)
+			// Read 10 bytes from the file
+			n, err := file.Read(buffer)
+			// fmt.Println("n:", n)
+			// fmt.Println("buffer:", buffer)
+			// fmt.Println()
+			if err != nil {
+				// Check if it's the end of the file
+				if err.Error() == "EOF" {
+					break
+				}
+				// Handle other errors
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			// Write the 10-byte chunk to the response
+			w.Write(buffer[:n])
+			//w.Write([]byte("\n@@@@\n"))
+		}
+	} else {
+
+		// Copy file contents to response body
+		_, err = io.Copy(w, file)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
 	fmt.Printf("\nFile %s sent!\n\n> ", filename)
