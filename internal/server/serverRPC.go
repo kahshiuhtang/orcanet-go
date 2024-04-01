@@ -41,8 +41,10 @@ type fileShareServerNode struct {
 }
 
 func CreateDHTConnection(bootstrapAddress *string) (context.Context, *dht.IpfsDHT) {
-	return nil, nil
-	bootstrapPeer := "/ip4/209.151.153.224/tcp/44981/p2p/QmcRcNGtPyyixU1fngmsXgbxBgEAPX7Exd6kFyczmDFMwJ"
+	if *bootstrapAddress == "local" {
+		return nil, nil
+	}
+	bootstrapPeer := "/ip4/194.113.75.165/tcp/44981/p2p/QmS6bES2qGSCN1vTmxEjZGDwwLw5Lsm2ToAcpzf97S7BnR"
 	if *bootstrapAddress != "" {
 		bootstrapPeer = *bootstrapAddress
 	}
@@ -139,10 +141,12 @@ func PlaceKey(ctx context.Context, kDHT *dht.IpfsDHT, putKey string, putValue st
 		return
 	}
 	fmt.Println("Put key: ", putKey+" Value: "+putValue)
+	fmt.Print("> ")
 }
 func SearchKey(ctx context.Context, kDHT *dht.IpfsDHT, searchKey string) []string {
 	valueStream, err := kDHT.SearchValue(ctx, "orcanet/market/"+searchKey)
 	fmt.Println("Searching for " + searchKey)
+	fmt.Print("> ")
 	if err != nil {
 		fmt.Println("Error: ", err)
 		time.Sleep(5 * time.Second)
@@ -152,7 +156,9 @@ func SearchKey(ctx context.Context, kDHT *dht.IpfsDHT, searchKey string) []strin
 	allAddress := make([]string, 0)
 	for byteArray := range valueStream {
 		allAddress = append(allAddress, string(byteArray))
+		fmt.Print("Found value: ")
 		fmt.Println(string(byteArray))
+		fmt.Print("> ")
 	}
 	return allAddress
 }

@@ -136,7 +136,7 @@ func LoadInKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
 	_, err1 := os.Stat("./config/key.pub")
 	_, err2 := os.Stat("./config/key.priv")
 	if err1 == nil && err2 == nil {
-		fmt.Printf("File exists\n")
+		fmt.Printf("Loading in public/private key locally...\n")
 		privateKeyContent, err := os.ReadFile("./config/key.priv")
 		if err != nil {
 			fmt.Println("Error loading in key file:", err)
@@ -158,7 +158,7 @@ func LoadInKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
 			os.Exit(1)
 		}
 	} else {
-		fmt.Printf("Key-Pair does not exist\n")
+		fmt.Printf("Public/Private key does not exist, generating...\n")
 		privateKey, err = GenerateKeyPair()
 		if err != nil {
 			fmt.Println("Error generating key pair:", err)
@@ -192,10 +192,10 @@ func LoadInKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
 	err = VerifySignature(fileContent, signedFile, publicKey)
 
 	if err != nil {
-		fmt.Println("Key verification failed:", err)
+		fmt.Println("Unable to verify key pair, please try again:", err)
 		os.Exit(1)
 	} else {
-		fmt.Println("Key verified successfully.")
+		fmt.Println("Public/Private key verified.")
 	}
 	return publicKey, privateKey
 }

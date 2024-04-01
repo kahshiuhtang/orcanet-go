@@ -9,6 +9,7 @@ import (
 )
 
 var test bool
+var localOnly bool
 var boostrapNodeAddress string
 
 func main() {

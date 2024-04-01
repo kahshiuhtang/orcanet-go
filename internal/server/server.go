@@ -72,7 +72,7 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 
 	// Print the received byte string
 	var data TransactionFile
-	fmt.Println("Received byte string:", string(body))
+	fmt.Println("Received byte string:")
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON:", err)
@@ -127,7 +127,7 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	})
 	http.HandleFunc("/sendTransaction", handleTransaction)
 
-	fmt.Printf("Listening on port %s...\n\n", port)
+	fmt.Printf("Listening on port %s...\n", port)
 	serverReady <- true
 	http.ListenAndServe(":"+port, nil)
 }
@@ -205,8 +205,8 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 			}
 			fmt.Println("Sending chunk...")
 			// Write the 10-byte chunk to the response
-			<-eventChannel
 			w.Write(buffer[:n])
+			<-eventChannel
 			//w.Write([]byte("\n@@@@\n"))
 		}
 	} else {

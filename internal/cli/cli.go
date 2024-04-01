@@ -138,6 +138,13 @@ func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.Priv
 			for _, file := range files {
 				fmt.Println(file.Name)
 			}
+		case "hash":
+			if len(args) == 1 {
+				orcaHash.HashFile(args[0])
+			} else {
+				fmt.Println("Usage: hash [fileName]")
+				fmt.Println()
+			}
 		case "send":
 			if len(args) == 3 {
 				cost, err := strconv.ParseFloat(args[0], 64)
@@ -158,12 +165,17 @@ func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.Priv
 			fmt.Println("COMMANDS:")
 			fmt.Println(" get [ip] [port] [filename]     Request a file")
 			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
+			fmt.Println(" putKey [key] [value]           Put a key in the DHT")
+			fmt.Println(" getKey [key]                   Retreieve key from DHT")
 			fmt.Println(" import [filepath]              Import a file")
+			fmt.Println(" fileGet [fileHash]            Get the file from the network")
+			fmt.Println(" send [amount] [ip] [amount]    Send an amount of money to network")
+			fmt.Println(" hash [fileName]                Get the hash of a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" location                       Print your location")
 			fmt.Println(" network                        Test speed of network")
 			fmt.Println(" exit                           Exit the program")
-			fmt.Println()
+			fmt.Print()
 		default:
 			fmt.Println("Unknown command. Type 'help' for available commands.")
 			fmt.Println()
