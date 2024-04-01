@@ -26,6 +26,7 @@ func StartCLI(bootstrapAddress *string) {
 	<-serverReady
 
 	reader := bufio.NewReader(os.Stdin)
+	client := orcaClient.NewClient("files/names/")
 
 	for {
 		fmt.Print("> ")
@@ -57,7 +58,7 @@ func StartCLI(bootstrapAddress *string) {
 		switch command {
 		case "get":
 			if len(args) == 3 {
-				go orcaClient.GetFileOnce(args[0], args[1], args[2])
+				go client.GetFileOnce(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: get [ip] [port] [filename]")
 				fmt.Println()
@@ -83,7 +84,7 @@ func StartCLI(bootstrapAddress *string) {
 					for _, address := range addresses {
 						addressParts := strings.Split(address, ":")
 						if len(addressParts) == 2 {
-							orcaClient.GetFileOnce(addressParts[0], addressParts[1], args[0])
+							client.GetFileOnce(addressParts[0], addressParts[1], args[0])
 						} else {
 							fmt.Println("Error, got invalid address from DHT")
 						}
@@ -106,14 +107,14 @@ func StartCLI(bootstrapAddress *string) {
 			}
 		case "store":
 			if len(args) == 3 {
-				go orcaClient.RequestStorage(args[0], args[1], args[2])
+				go client.RequestStorage(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: store [ip] [port] [filename]")
 				fmt.Println()
 			}
 		case "import":
 			if len(args) == 1 {
-				go orcaClient.ImportFile(args[0])
+				go client.ImportFile(args[0])
 			} else {
 				fmt.Println("Usage: import [filepath]")
 				fmt.Println()
