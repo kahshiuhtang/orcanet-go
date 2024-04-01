@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"fmt"
 	"net"
 	orcaClient "orca-peer/internal/client"
@@ -13,7 +14,7 @@ import (
 	"strings"
 )
 
-func StartCLI(bootstrapAddress *string) {
+func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) {
 	fmt.Println("Loading...")
 	ctx, dht := orcaServer.CreateDHTConnection(bootstrapAddress)
 	fmt.Println("Welcome to Orcanet!")
