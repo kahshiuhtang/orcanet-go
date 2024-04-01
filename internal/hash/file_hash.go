@@ -9,18 +9,17 @@ import (
 	"os"
 )
 
-type NameStore interface {
-	GetFileHash(string) string
-	PutFileHash(string) string
-}
+type MemSize int
 
-type FileStore interface {
-	GetFile(string) ([]byte, error)
-	PutFile([]byte) (string, error)
-}
+const (
+	Byte     = 1
+	Kilobyte = Byte * 1000
+	Megabyte = Byte * 1000
+)
 
 type NameMap struct {
 	mapping map[string]string
+	path    string
 }
 
 /*
@@ -34,6 +33,24 @@ type DataStore struct {
 	buf_cap    int
 	drive_size int
 	drive_cap  int
+}
+
+func NewNameStore(path string) *NameMap {
+	return &NameMap{
+		mapping: map[string]string{},
+		path:    path,
+	}
+}
+
+func NewDataStore(path string) *DataStore {
+	return &DataStore{
+		path:       path,
+		buf:        map[string][]byte{},
+		buf_size:   0,
+		buf_cap:    4 * Kilobyte,
+		drive_size: 0,
+		drive_cap:  1 * Megabyte,
+	}
 }
 
 func HashFile(address string) []byte {
@@ -70,6 +87,8 @@ func (ds *DataStore) GetFile(hash_val string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
+	defer file.Close()
+
 	data, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil && err != io.EOF {
 		return []byte{}, err
@@ -82,7 +101,7 @@ func (ds *DataStore) GetFile(hash_val string) ([]byte, error) {
 
 func (ds *DataStore) PutFile(data []byte) (string, error) {
 	checksum := sha256.Sum256(data)
-	hash_val := string(checksum[:])
+	hash_val := fmt.Sprintf("%x", checksum)
 	if err := ds.DrivePut(hash_val, data); err != nil {
 		return "", err
 	}

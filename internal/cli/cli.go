@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"fmt"
 	"net"
 	orcaClient "orca-peer/internal/client"
@@ -10,10 +11,11 @@ import (
 	orcaStatus "orca-peer/internal/status"
 	orcaStore "orca-peer/internal/store"
 	"os"
+	"strconv"
 	"strings"
 )
 
-func StartCLI(bootstrapAddress *string) {
+func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) {
 	fmt.Println("Loading...")
 	ctx, dht := orcaServer.CreateDHTConnection(bootstrapAddress)
 	fmt.Println("Welcome to Orcanet!")
@@ -26,6 +28,7 @@ func StartCLI(bootstrapAddress *string) {
 	<-serverReady
 
 	reader := bufio.NewReader(os.Stdin)
+	client := orcaClient.NewClient("files/names/")
 
 	for {
 		fmt.Print("> ")
@@ -57,7 +60,7 @@ func StartCLI(bootstrapAddress *string) {
 		switch command {
 		case "get":
 			if len(args) == 3 {
-				go orcaClient.GetFileOnce(args[0], args[1], args[2])
+				go client.GetFileOnce(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: get [ip] [port] [filename]")
 				fmt.Println()
@@ -83,7 +86,7 @@ func StartCLI(bootstrapAddress *string) {
 					for _, address := range addresses {
 						addressParts := strings.Split(address, ":")
 						if len(addressParts) == 2 {
-							orcaClient.GetFileOnce(addressParts[0], addressParts[1], args[0])
+							client.GetFileOnce(addressParts[0], addressParts[1], args[0])
 						} else {
 							fmt.Println("Error, got invalid address from DHT")
 						}
@@ -106,14 +109,14 @@ func StartCLI(bootstrapAddress *string) {
 			}
 		case "store":
 			if len(args) == 3 {
-				go orcaClient.RequestStorage(args[0], args[1], args[2])
+				go client.RequestStorage(args[0], args[1], args[2])
 			} else {
 				fmt.Println("Usage: store [ip] [port] [filename]")
 				fmt.Println()
 			}
 		case "import":
 			if len(args) == 1 {
-				go orcaClient.ImportFile(args[0])
+				go client.ImportFile(args[0])
 			} else {
 				fmt.Println("Usage: import [filepath]")
 				fmt.Println()
@@ -135,6 +138,19 @@ func StartCLI(bootstrapAddress *string) {
 			for _, file := range files {
 				fmt.Println(file.Name)
 			}
+		case "send":
+			if len(args) == 3 {
+				cost, err := strconv.ParseFloat(args[0], 64)
+				if err != nil {
+					fmt.Println("Error parsing amount to send")
+					continue
+				}
+				orcaClient.SendTransaction(cost, args[1], args[2], pubKey, privKey)
+			} else {
+				fmt.Println("Usage: send [amount] [ip] [port]")
+				fmt.Println()
+			}
+
 		case "exit":
 			fmt.Println("Exiting...")
 			return

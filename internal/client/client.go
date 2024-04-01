@@ -2,20 +2,33 @@ package client
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"orca-peer/internal/hash"
+	orcaHash "orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 )
+
+type Client struct {
+	name_map hash.NameMap
+}
+
+func NewClient(path string) *Client {
+	return &Client{
+		name_map: *hash.NewNameStore(path),
+	}
+}
 
 type FileData struct {
 	FileName string `json:"filename"`
 	Content  []byte `json:"content"`
 }
 
-func ImportFile(filePath string) {
+func (client *Client) ImportFile(filePath string) {
 	// Extract filename from the provided file path
 	_, fileName := filepath.Split(filePath)
 	if fileName == "" {
@@ -54,8 +67,57 @@ func ImportFile(filePath string) {
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
 
-func GetFileOnce(ip, port, filename string) {
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
+type Data struct {
+	Bytes               []byte `json:"bytes"`
+	UnlockedTransaction []byte `json:"transaction"`
+	PublicKey           string `json:"public_key"`
+}
+
+func SendTransaction(price float64, ip string, port string, publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) {
+	cost := orcaHash.GeneratePriceBytes(price)
+	byteBuffer := bytes.NewBuffer(cost)
+	pubKeyString, err := orcaHash.ExportRsaPublicKeyAsPemStr(publicKey)
+	if err != nil {
+		fmt.Println("Error sending public key in header:", err)
+		return
+	}
+	data := Data{
+		Bytes:               byteBuffer.Bytes(),
+		UnlockedTransaction: cost,
+		PublicKey:           string(pubKeyString),
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/sendTransaction", ip, port), bytes.NewReader(jsonData))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/octet-stream")
+	fmt.Println("Verifying Signature...")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	} else {
+		fmt.Println("Send Request")
+	}
+	defer resp.Body.Close()
+
+}
+func (client *Client) GetFileOnce(ip, port, filename string) {
+	file_hash := client.name_map.GetFileHash(filename)
+	if file_hash == "" {
+		fmt.Println("Error: do not have hash for the file")
+		return
+	}
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, file_hash))
 	if err != nil {
 		fmt.Printf("Error: %s\n\n", err)
 		return
@@ -98,7 +160,7 @@ func GetFileOnce(ip, port, filename string) {
 	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
 }
 
-func RequestStorage(ip, port, filename string) {
+func (client *Client) RequestStorage(ip, port, filename string) {
 	// Read file content
 	content, err := os.ReadFile("./files/documents/" + filename)
 	if err != nil {
@@ -143,6 +205,7 @@ func RequestStorage(ip, port, filename string) {
 		fmt.Println("Error reading response body:", err)
 		return
 	}
+	client.name_map.PutFileHash(filename, string(body))
 
 	fmt.Println(string(body))
 	fmt.Print("> ")

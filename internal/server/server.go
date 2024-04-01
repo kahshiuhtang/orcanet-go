@@ -1,24 +1,35 @@
 package server
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
+	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const keyServerAddr = "serverAddr"
+
+type Server struct {
+	storage *hash.DataStore
+}
 
 func Init() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
+	mux.HandleFunc("/sendTransaction", handleTransaction)
 
 	ctx := context.Background()
 	server := &http.Server{
@@ -39,21 +50,88 @@ func Init() {
 	}()
 }
 
+type TransactionFile struct {
+	Bytes               []byte `json:"bytes"`
+	UnlockedTransaction []byte `json:"transaction"`
+	PublicKey           string `json:"public_key"`
+}
+type Transaction struct {
+	Price     float64 `json:"price"`
+	Timestamp string  `json:"timestamp"`
+	Uuid      string  `json:"uuid"`
+}
+
+func handleTransaction(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	fmt.Println("Handling a transaction...")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Print the received byte string
+	var data TransactionFile
+	fmt.Println("Received byte string:", string(body))
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	}
+	publicKey, err := hash.ParseRsaPublicKeyFromPemStr(data.PublicKey)
+	if err != nil {
+		fmt.Println("Unable to unmarshalling public key:", err)
+		return
+	}
+	timestamp := time.Now()
+	timestampStr := timestamp.Format(time.RFC3339)
+	err = os.WriteFile("./files/transactions/"+timestampStr, body, 0644)
+	if err != nil {
+		fmt.Println("Error writing transaction to file:", err)
+		return
+	}
+	fmt.Println("Data in struct:", data)
+	error := hash.VerifySignature(data.UnlockedTransaction, data.Bytes, publicKey)
+	if error != nil {
+		fmt.Println("Properly Hashed Transaction")
+	} else {
+		fmt.Println("Did not properly hash transaction")
+	}
+	var transaction Transaction
+	err = json.Unmarshal(data.UnlockedTransaction, &transaction)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	} else {
+		fmt.Println("Transaction JSON:")
+		fmt.Println("Sent Amount:")
+		fmt.Println(transaction.Price)
+		fmt.Println("UUID:")
+		fmt.Println(transaction.Uuid)
+	}
+	fmt.Println("> ")
+}
+
 // Start HTTP server
 func StartServer(port string, serverReady chan bool, confirming *bool, confirmation *string) {
+	server := Server{
+		storage: hash.NewDataStore("files/stored/"),
+	}
 	http.HandleFunc("/requestFile/", func(w http.ResponseWriter, r *http.Request) {
-		sendFile(w, r, confirming, confirmation)
+		server.sendFile(w, r, confirming, confirmation)
 	})
 	http.HandleFunc("/storeFile/", func(w http.ResponseWriter, r *http.Request) {
-		storeFile(w, r, confirming, confirmation)
+		server.storeFile(w, r, confirming, confirmation)
 	})
+	http.HandleFunc("/sendTransaction", handleTransaction)
 
 	fmt.Printf("Listening on port %s...\n\n", port)
 	serverReady <- true
 	http.ListenAndServe(":"+port, nil)
 }
 
-func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
+func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Extract filename from URL path
 	filename := r.URL.Path[len("/requestFile/"):]
 
@@ -74,11 +152,17 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	*confirming = false
 
 	// Open the file
-	file, err := os.Open("./files/stored/" + filename)
+	file_data, err := server.storage.GetFile(filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	file, err := os.Open(filename)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	defer file.Close()
 
 	stat, err := file.Stat()
@@ -101,6 +185,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 	// Set content disposition header
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
+
 
 	const chunkSize = 1024
 	if stat.Size() > chunkSize {
@@ -135,6 +220,7 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 	}
 
 	fmt.Printf("\nFile %s sent!\n\n> ", filename)
@@ -145,7 +231,7 @@ type FileData struct {
 	Content  []byte `json:"content"`
 }
 
-func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
+func (server *Server) storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
 	// Parse JSON object from request body
 	var fileData FileData
 	err := json.NewDecoder(r.Body).Decode(&fileData)
@@ -170,29 +256,15 @@ func storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirm
 	*confirmation = ""
 	*confirming = false
 
-	// Create the directory if it doesn't exist
-	err = os.MkdirAll("./files/stored/", 0755)
-	if err != nil {
-		return
-	}
-
 	// Create file
-	file, err := os.Create("./files/stored/" + fileData.FileName)
+	file_hash, err := server.storage.PutFile(fileData.Content)
 	if err != nil {
 		http.Error(w, "Failed to create file", http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
 
-	// Write content to file
-	_, err = file.Write(fileData.Content)
-	if err != nil {
-		http.Error(w, "Failed to write to file", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprintf(w, "\nRequested client stored file %s successfully!\n", fileData.FileName)
-	fmt.Printf("\nStored file %s!\n\n> ", fileData.FileName)
+	fmt.Fprintf(w, "%s", file_hash)
+	fmt.Printf("\nStored file %s hash %s!\n\n> ", fileData.FileName, file_hash)
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
