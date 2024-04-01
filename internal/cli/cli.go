@@ -11,6 +11,7 @@ import (
 	orcaStatus "orca-peer/internal/status"
 	orcaStore "orca-peer/internal/store"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -137,6 +138,19 @@ func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.Priv
 			for _, file := range files {
 				fmt.Println(file.Name)
 			}
+		case "send":
+			if len(args) == 3 {
+				cost, err := strconv.ParseFloat(args[0], 64)
+				if err != nil {
+					fmt.Println("Error parsing amount to send")
+					continue
+				}
+				orcaClient.SendTransaction(cost, args[1], args[2], pubKey, privKey)
+			} else {
+				fmt.Println("Usage: send [amount] [ip] [port]")
+				fmt.Println()
+			}
+
 		case "exit":
 			fmt.Println("Exiting...")
 			return
