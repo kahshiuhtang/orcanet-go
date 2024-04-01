@@ -1,15 +1,11 @@
 package server
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"orca-peer/internal/hash"
@@ -151,12 +147,6 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	*confirmation = ""
 	*confirming = false
 
-	// Open the file
-	file_data, err := server.storage.GetFile(filename)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
 	file, err := os.Open(filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -185,7 +175,6 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	// Set content disposition header
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
-
 
 	const chunkSize = 1024
 	if stat.Size() > chunkSize {
