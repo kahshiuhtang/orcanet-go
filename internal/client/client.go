@@ -2,11 +2,13 @@ package client
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"orca-peer/internal/hash"
+	orcaHash "orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 
@@ -66,7 +68,37 @@ func (client *Client) ImportFile(filePath string) {
 
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
+func SendTransaction(price float64, ip string, port string, publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) {
+	cost := orcaHash.GeneratePriceBytes(price)
+	byteBuffer := bytes.NewBuffer(cost)
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/sendTransaction", ip, port), byteBuffer)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	pubKeyString, err := orcaHash.ExportRsaPublicKeyAsPemStr(publicKey)
+	if err != nil {
+		fmt.Println("Error sending public key in header:", err)
+		return
+	}
+	fmt.Println(string(pubKeyString))
+	req.Header.Set("Content-Type", "application/octet-stream")
+	fmt.Println("Verifying Signature...")
+	// suc := orcaHash.VerifySignature(jsonBytes, signed, publicKey)
+	// if suc == nil {
+	// 	fmt.Println("Valid Transaction")
+	// } else {
+	// 	fmt.Println("Invalid Transaction")
+	// }
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	}
+	defer resp.Body.Close()
 
+}
 func (client *Client) GetFileOnce(ip, port, filename string) {
 	file_hash := client.name_map.GetFileHash(filename)
 	if file_hash == "" {

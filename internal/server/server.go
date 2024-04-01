@@ -30,6 +30,7 @@ func Init() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
+	mux.HandleFunc("/sendTransaction", handleTransaction)
 
 	ctx := context.Background()
 	server := &http.Server{
@@ -48,6 +49,21 @@ func Init() {
 			fmt.Printf("Error listening for server: %s\n", err)
 		}
 	}()
+}
+func handleTransaction(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Print the received byte string
+	fmt.Println("Received byte string:", string(body))
+
+	// Respond with a success message
+	fmt.Fprintf(w, "Byte string received successfully\n")
 }
 
 // Start HTTP server
