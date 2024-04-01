@@ -86,7 +86,6 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
 
 	// Set content type
 	contentType := "application/octet-stream"
@@ -108,8 +107,12 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 		fmt.Println("Must serve in chunks")
 		buffer := make([]byte, chunkSize)
 		for {
+			//	time.Sleep(1 * time.Second)
 			// Read 10 bytes from the file
 			n, err := file.Read(buffer)
+			// fmt.Println("n:", n)
+			// fmt.Println("buffer:", buffer)
+			// fmt.Println()
 			if err != nil {
 				// Check if it's the end of the file
 				if err.Error() == "EOF" {
@@ -122,9 +125,9 @@ func sendFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirma
 
 			// Write the 10-byte chunk to the response
 			w.Write(buffer[:n])
-			w.Write([]byte("\n@@@@\n"))
+			//w.Write([]byte("\n@@@@\n"))
 		}
-	} else{
+	} else {
 
 		// Copy file contents to response body
 		_, err = io.Copy(w, file)
