@@ -11,11 +11,32 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/google/uuid"
 )
 
+type Transaction struct {
+	Price     float64 `json:"price"`
+	Timestamp string  `json:"timestamp"`
+	Uuid      string  `json:"uuid"`
+}
+
 func GeneratePriceBytes(price float64) []byte {
-	jsonData := map[string]interface{}{
-		"key1": price,
+	timestamp := time.Now()
+	timestampStr := timestamp.Format(time.RFC3339)
+	uuidObj, err := uuid.NewRandom()
+	if err != nil {
+		fmt.Println("Error generating UUID:", err)
+		return nil
+	}
+
+	// Convert the UUID to a string
+	uuidStr := uuidObj.String()
+	jsonData := Transaction{
+		Price:     price,
+		Timestamp: timestampStr,
+		Uuid:      uuidStr,
 	}
 	// Marshal JSON object to byte array
 	jsonBytes, err := json.Marshal(jsonData)

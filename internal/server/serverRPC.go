@@ -41,6 +41,7 @@ type fileShareServerNode struct {
 }
 
 func CreateDHTConnection(bootstrapAddress *string) (context.Context, *dht.IpfsDHT) {
+	return nil, nil
 	bootstrapPeer := "/ip4/209.151.153.224/tcp/44981/p2p/QmcRcNGtPyyixU1fngmsXgbxBgEAPX7Exd6kFyczmDFMwJ"
 	if *bootstrapAddress != "" {
 		bootstrapPeer = *bootstrapAddress

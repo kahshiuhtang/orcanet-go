@@ -50,6 +50,18 @@ func Init() {
 		}
 	}()
 }
+
+type TransactionFile struct {
+	Bytes               []byte `json:"bytes"`
+	UnlockedTransaction []byte `json:"transaction"`
+	PublicKey           string `json:"public_key"`
+}
+type Transaction struct {
+	Price     float64 `json:"price"`
+	Timestamp string  `json:"timestamp"`
+	Uuid      string  `json:"uuid"`
+}
+
 func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	fmt.Println("Handling a transaction...")
@@ -61,10 +73,26 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// Print the received byte string
+	var data TransactionFile
 	fmt.Println("Received byte string:", string(body))
-
-	// Respond with a success message
-	fmt.Fprintf(w, "Byte string received successfully\n")
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	}
+	publicKey, err := hash.ParseRsaPublicKeyFromPemStr(data.PublicKey)
+	if err != nil {
+		fmt.Println("Unable to unmarshalling public key:", err)
+		return
+	}
+	fmt.Println("Data in struct:", data)
+	error := hash.VerifySignature(data.UnlockedTransaction, data.Bytes, publicKey)
+	if error != nil {
+		fmt.Println("Properly Hashed Transaction")
+	} else {
+		fmt.Println("Did not properly hash transaction")
+	}
+	fmt.Println("> ")
 }
 
 // Start HTTP server
@@ -78,6 +106,7 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	http.HandleFunc("/storeFile/", func(w http.ResponseWriter, r *http.Request) {
 		server.storeFile(w, r, confirming, confirmation)
 	})
+	http.HandleFunc("/sendTransaction", handleTransaction)
 
 	fmt.Printf("Listening on port %s...\n\n", port)
 	serverReady <- true
