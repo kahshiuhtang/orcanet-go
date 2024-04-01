@@ -8,6 +8,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"os"
 )
 
 func GenerateKeyPair() (*rsa.PrivateKey, error) {
@@ -84,4 +86,79 @@ func ParseRsaPublicKeyFromPemStr(pubPEM string) (*rsa.PublicKey, error) {
 		break // fall through
 	}
 	return nil, errors.New("key type is not RSA")
+}
+
+func LoadInKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
+	fileContent, err := os.ReadFile("install.sh")
+	var privateKey *rsa.PrivateKey
+	var publicKey *rsa.PublicKey
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		os.Exit(1)
+	}
+	_, err1 := os.Stat("./config/key.pub")
+	_, err2 := os.Stat("./config/key.priv")
+	if err1 == nil && err2 == nil {
+		fmt.Printf("File exists\n")
+		privateKeyContent, err := os.ReadFile("./config/key.priv")
+		if err != nil {
+			fmt.Println("Error loading in key file:", err)
+			os.Exit(1)
+		}
+		publicKeyContent, err := os.ReadFile("./config/key.pub")
+		if err != nil {
+			fmt.Println("Error loading in key file:", err)
+			os.Exit(1)
+		}
+		privateKey, err = ParseRsaPrivateKeyFromPemStr(string(privateKeyContent))
+		if err != nil {
+			fmt.Println("Error loading in key file:", err)
+			os.Exit(1)
+		}
+		publicKey, err = ParseRsaPublicKeyFromPemStr(string(publicKeyContent))
+		if err != nil {
+			fmt.Println("Error loading in key file:", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Printf("Key-Pair does not exist\n")
+		privateKey, err = GenerateKeyPair()
+		if err != nil {
+			fmt.Println("Error generating key pair:", err)
+			os.Exit(1)
+		}
+
+		publicKey := &privateKey.PublicKey
+		pubBytes, err := ExportRsaPublicKeyAsPemStr(publicKey)
+		if err != nil {
+			fmt.Println("Error generating public key as PEM str:", err)
+			os.Exit(1)
+		}
+		os.WriteFile("./config/key.pub", pubBytes, 0644)
+
+		privBytes := ExportRsaPrivateKeyAsPemStr(privateKey)
+		if err != nil {
+			fmt.Println("Error generating public key as PEM str:", err)
+			os.Exit(1)
+		}
+		os.WriteFile("./config/key.priv", privBytes, 0644)
+	}
+
+	// Sign file
+	signedFile, err := SignFile(fileContent, privateKey)
+	if err != nil {
+		fmt.Println("Error signing file:", err)
+		os.Exit(1)
+	}
+
+	// Verify signature
+	err = VerifySignature(fileContent, signedFile, publicKey)
+
+	if err != nil {
+		fmt.Println("Key verification failed:", err)
+		os.Exit(1)
+	} else {
+		fmt.Println("Key verified successfully.")
+	}
+	return publicKey, privateKey
 }
