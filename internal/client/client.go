@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -119,11 +120,12 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 			return
 		}
 	*/
+  // data, err := client.getData(ip, port, filename)
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
 	if err != nil {
-		fmt.Printf("Error: %s\n\n", err)
-		return
+		return err
 	}
+
 	fmt.Println("Response:")
 	fmt.Println(resp)
 	fmt.Println("ResponseBody:")
@@ -151,23 +153,22 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 	if err != nil {
 		return
 	}
-	defer out.Close()
 
-	// Write response body to file
-	_, err = io.Copy(out, resp.Body)
+	err = os.WriteFile(filepath.Join("./files/requested/", filename), data, 0666)
 	if err != nil {
-		return
+		return err
 	}
 
 	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
+	return nil
 }
 
-func (client *Client) RequestStorage(ip, port, filename string) {
+func (client *Client) RequestStorage(ip, port, filename string) (string, error) {
 	// Read file content
 	content, err := os.ReadFile("./files/documents/" + filename)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
-		return
+		return "", err
 	}
 
 	// Create FileData struct
@@ -175,19 +176,123 @@ func (client *Client) RequestStorage(ip, port, filename string) {
 		FileName: filename,
 		Content:  content,
 	}
+	hash, err := client.storeData(ip, port, filename, &fileData)
 
+	fmt.Print("> ")
+
+	return hash, err
+}
+
+func (client *Client) GetDirectory(ip, port, path string) {
+	data, err := client.getData(ip, port, path)
+	if err != nil {
+		fmt.Println("Failed to Get Directory")
+		return
+	}
+	var dir_tree map[string]any
+	err = json.Unmarshal(data, &dir_tree)
+	if err != nil {
+		fmt.Println("Failed to parse dir tree")
+		return
+	}
+	err = client.getDirectory(ip, port, dir_tree)
+	if err != nil {
+		fmt.Println("Failed to Get Directory")
+		return
+	}
+}
+
+func (client *Client) getDirectory(ip, port string, dir_tree map[string]any) error {
+	for path, v := range dir_tree {
+		switch val := v.(type) {
+		case string:
+			err := os.MkdirAll(filepath.Join("./files/requested/", filepath.Dir(path)), 0755)
+			if err != nil {
+				return err
+			}
+			err = client.GetFileOnce(ip, port, path)
+			if err != nil {
+				return err
+			}
+		case map[string]any:
+			client.getDirectory(ip, port, val)
+		default:
+			panic("Bug: dir_tree should only have strings or recursive dir_tree")
+		}
+	}
+	return nil
+}
+
+func (client *Client) StoreDirectory(ip, port, path string) {
+	dir_tree_hashes, err := client.storeDirectory(ip, port, filepath.Join("./files/documents/", path))
+	if err != nil {
+		fmt.Println("Error storing directory", path)
+	}
+	data, err := json.Marshal(dir_tree_hashes)
+	if err != nil {
+		fmt.Println("Error parsing directory hash tree")
+	}
+	filedata := FileData{
+		FileName: path,
+		Content:  data,
+	}
+	dir_hash, err := client.storeData(ip, port, path, &filedata)
+	if err != nil {
+		fmt.Println("Error storing directory", path)
+		return
+	}
+	client.name_map.PutFileHash(path, dir_hash)
+}
+
+func (client *Client) storeDirectory(ip, port string, path string) (map[string]any, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		fmt.Println("Error reading directory", path)
+		return nil, err
+	}
+	mapping := map[string]any{}
+
+	for _, entry := range entries {
+		path := filepath.Join(path, entry.Name())
+		if entry.IsDir() {
+			sub_mapping, err := client.storeDirectory(ip, port, path)
+			if err != nil {
+				return nil, err
+			}
+			mapping[path] = sub_mapping
+		} else {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			filedata := FileData{
+				FileName: path,
+				Content:  data,
+			}
+
+			file_hash, err := client.storeData(ip, port, path, &filedata)
+			if err != nil {
+				return nil, err
+			}
+			mapping[path] = file_hash
+		}
+	}
+	return mapping, nil
+}
+
+func (client *Client) storeData(ip, port, filename string, fileData *FileData) (string, error) {
 	// Marshal FileData to JSON
 	jsonData, err := json.Marshal(fileData)
 	if err != nil {
 		fmt.Println("Error marshalling JSON:", err)
-		return
+		return "", err
 	}
 
 	// Send POST request to store file
 	resp, err := http.Post(fmt.Sprintf("http://%s:%s/storeFile/", ip, port), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -195,20 +300,53 @@ func (client *Client) RequestStorage(ip, port, filename string) {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println("Error reading response body:", err)
-			return
+			return "", err
 		}
 		fmt.Printf("\nError: %s\n> ", body)
-		return
+		return "", errors.New("http status not ok")
 	}
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
-		return
+		return "", err
 	}
 	client.name_map.PutFileHash(filename, string(body))
 
 	fmt.Println(string(body))
-	fmt.Print("> ")
+	return string(body), nil
+}
+
+func (client *Client) getData(ip, port, filename string) ([]byte, error) {
+
+	file_hash := client.name_map.GetFileHash(filename)
+	if file_hash == "" {
+		fmt.Println("Error: do not have hash for the file")
+		return nil, errors.New("name not found")
+	}
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, file_hash))
+	if err != nil {
+		fmt.Printf("Error: %s\n\n", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return nil, err
+		}
+		fmt.Printf("\nError: %s\n> ", body)
+		return nil, errors.New("http status not ok")
+	}
+
+	data := bytes.NewBuffer([]byte{})
+
+	_, err = io.Copy(data, resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return data.Bytes(), nil
 }

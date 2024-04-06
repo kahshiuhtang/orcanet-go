@@ -3,10 +3,12 @@ package hash
 import (
 	"bufio"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type MemSize int
@@ -14,7 +16,7 @@ type MemSize int
 const (
 	Byte     = 1
 	Kilobyte = Byte * 1000
-	Megabyte = Byte * 1000
+	Megabyte = Kilobyte * 1000
 )
 
 type NameMap struct {
@@ -36,20 +38,25 @@ type DataStore struct {
 }
 
 func NewNameStore(path string) *NameMap {
-	return &NameMap{
+	Assert(os.MkdirAll(path, 0755) == nil, "Failed to create namestore dir")
+	name_map := &NameMap{
 		mapping: map[string]string{},
 		path:    path,
 	}
+	name_map.Recover()
+
+	return name_map
 }
 
 func NewDataStore(path string) *DataStore {
+	Assert(os.MkdirAll(path, 0755) == nil, "Failed to create namestore dir")
 	return &DataStore{
 		path:       path,
 		buf:        map[string][]byte{},
 		buf_size:   0,
 		buf_cap:    4 * Kilobyte,
 		drive_size: 0,
-		drive_cap:  1 * Megabyte,
+		drive_cap:  100 * Megabyte,
 	}
 }
 
@@ -77,6 +84,24 @@ func (nmp *NameMap) GetFileHash(name string) string {
 
 func (nmp *NameMap) PutFileHash(name string, hash_val string) {
 	nmp.mapping[name] = hash_val
+	Assert(nmp.SaveMapping() == nil, "Failed to save mapping")
+}
+
+func (nmp *NameMap) SaveMapping() error {
+	res, err := json.Marshal(nmp.mapping)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(nmp.path, "mapping"), res, 0644)
+}
+
+func (npm *NameMap) Recover() {
+	res, err := os.ReadFile(filepath.Join(npm.path, "mapping"))
+	if err == nil {
+		var mapping map[string]string
+		Assert(json.Unmarshal(res, &mapping) == nil, "Failed to parse mapping")
+		npm.mapping = mapping
+	}
 }
 
 func (ds *DataStore) GetFile(hash_val string) ([]byte, error) {
@@ -134,6 +159,7 @@ func (ds *DataStore) EvictBuffer() {
 
 func (ds *DataStore) DrivePut(hash_val string, data []byte) error {
 	if len(data)+ds.drive_size > ds.drive_cap {
+		fmt.Printf("Drive evict %d %d\n", ds.drive_size, len(data))
 		ds.DriveEvict()
 	}
 	return ds.WriteFile(hash_val, data)
@@ -153,14 +179,14 @@ func (ds *DataStore) DriveEvict() {
 		}
 	}
 	if largest_file_hash != "" {
-		Assert(os.Remove(ds.path+largest_file_hash) == nil, "Todo remove file failed")
+		Assert(os.Remove(filepath.Join(ds.path, largest_file_hash)) == nil, "Todo remove file failed")
 	}
 }
 
 func (ds *DataStore) OpenFile(hash_val string) (*os.File, error) {
-	return os.Open(ds.path + hash_val)
+	return os.Open(filepath.Join(ds.path, hash_val))
 }
 
 func (ds *DataStore) WriteFile(hash_val string, data []byte) error {
-	return os.WriteFile(ds.path+hash_val, data, 0444)
+	return os.WriteFile(filepath.Join(ds.path, hash_val), data, 0444)
 }
