@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,19 +11,24 @@ import (
 	"orca-peer/internal/hash"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const keyServerAddr = "serverAddr"
+
+var (
+	eventChannel chan bool
+)
 
 type Server struct {
 	storage *hash.DataStore
 }
 
 func Init() {
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/requestFile", getFile)
+	mux.HandleFunc("/sendTransaction", handleTransaction)
 
 	ctx := context.Background()
 	server := &http.Server{
@@ -45,8 +49,73 @@ func Init() {
 	}()
 }
 
+type TransactionFile struct {
+	Bytes               []byte `json:"bytes"`
+	UnlockedTransaction []byte `json:"transaction"`
+	PublicKey           string `json:"public_key"`
+}
+type Transaction struct {
+	Price     float64 `json:"price"`
+	Timestamp string  `json:"timestamp"`
+	Uuid      string  `json:"uuid"`
+}
+
+func handleTransaction(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	fmt.Println("Handling a transaction...")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Print the received byte string
+	var data TransactionFile
+	fmt.Println("Received byte string:")
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	}
+	publicKey, err := hash.ParseRsaPublicKeyFromPemStr(data.PublicKey)
+	if err != nil {
+		fmt.Println("Unable to unmarshalling public key:", err)
+		return
+	}
+	timestamp := time.Now()
+	timestampStr := timestamp.Format(time.RFC3339)
+	err = os.WriteFile("./files/transactions/"+timestampStr, body, 0644)
+	if err != nil {
+		fmt.Println("Error writing transaction to file:", err)
+		return
+	}
+	fmt.Println("Data in struct:", data)
+	error := hash.VerifySignature(data.UnlockedTransaction, data.Bytes, publicKey)
+	if error != nil {
+		fmt.Println("Properly Hashed Transaction")
+	} else {
+		fmt.Println("Did not properly hash transaction")
+	}
+	var transaction Transaction
+	err = json.Unmarshal(data.UnlockedTransaction, &transaction)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	} else {
+		fmt.Println("Transaction JSON:")
+		fmt.Println("Sent Amount:")
+		fmt.Println(transaction.Price)
+		fmt.Println("UUID:")
+		fmt.Println(transaction.Uuid)
+	}
+	eventChannel <- true
+	fmt.Println("> ")
+}
+
 // Start HTTP server
 func StartServer(port string, serverReady chan bool, confirming *bool, confirmation *string) {
+	eventChannel = make(chan bool)
 	server := Server{
 		storage: hash.NewDataStore("files/stored/"),
 	}
@@ -56,8 +125,9 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	http.HandleFunc("/storeFile/", func(w http.ResponseWriter, r *http.Request) {
 		server.storeFile(w, r, confirming, confirmation)
 	})
+	http.HandleFunc("/sendTransaction", handleTransaction)
 
-	fmt.Printf("Listening on port %s...\n\n", port)
+	fmt.Printf("Listening on port %s...\n", port)
 	serverReady <- true
 	http.ListenAndServe(":"+port, nil)
 }
@@ -82,10 +152,17 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	*confirmation = ""
 	*confirming = false
 
-	// Open the file
-	file_data, err := server.storage.GetFile(filename)
+	file, err := os.Open("./files/" + filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -104,11 +181,43 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
 
-	// Copy file contents to response body
-	_, err = io.Copy(w, bytes.NewBuffer(file_data))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	const chunkSize = 1024
+	fmt.Println("File size: ")
+	fmt.Println(stat.Size())
+	if stat.Size() > chunkSize {
+		fmt.Println("Must serve in chunks")
+		buffer := make([]byte, chunkSize)
+		for {
+			//	time.Sleep(1 * time.Second)
+			// Read 10 bytes from the file
+			n, err := file.Read(buffer)
+			// fmt.Println("n:", n)
+			// fmt.Println("buffer:", buffer)
+			// fmt.Println()
+			if err != nil {
+				// Check if it's the end of the file
+				if err.Error() == "EOF" {
+					break
+				}
+				// Handle other errors
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			fmt.Println("Sending chunk...")
+			// Write the 10-byte chunk to the response
+			w.Write(buffer[:n])
+			<-eventChannel
+			//w.Write([]byte("\n@@@@\n"))
+		}
+	} else {
+		fmt.Println("sending in one piece")
+		// Copy file contents to response body
+		_, err = io.Copy(w, file)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
 	fmt.Printf("\nFile %s sent!\n\n> ", filename)

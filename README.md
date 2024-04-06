@@ -2,17 +2,22 @@
 
 ## Basic Functionality
 
-1) Request from the market the ip of a file
+* Retrieving
+    1) Find addresses corresponding with a specific file hash inside the DHT
+    2) Connect through HTTP with the cheapest option
+    3) Recieve chunks from the HTTP server
+        1) If the file is small (< 4KB), the entire transaction is done in one go
+        2) Otherwise, files are sent in chunks
+            1) A signed transaction must be sent to the sender
+    4) Close connection
+    5) Add file to imported folder inside files directory
 
-2) Send request to that specific ip
-
-3) Record transaction with producer to blockchain
-
-#### Notes:
-
-* Files that are on the network should be in the files folder. This can be done manually or by using the CLI
-
-* Inside the config file, set your public key and private key location from the 
+* Storing
+    1) Hash the file content that you are trying to store
+    2) Send a request to store the file in to the DHT
+    3) Make sure file is inside the stored folder inside files directory
+    4) Accept/Decline any requests for said file, or set the default behavior
+    5) Send all microtransactions to blockchain once everything is done
 
 
 ## Assumptions
@@ -57,10 +62,50 @@ Storing a file:
 $ store [ip] [address] [filename]
 ```
 
+Putting a key inside DHT
+
+```bash
+
+$ putKey [key] [value]
+
+```
+
+Getting a key inside DHT
+
+```bash
+
+$ getKey [key]
+
+```
+
 Import a file:
 
 ```bash
 $ import [filepath]
+```
+
+Complete pipeline for getting a file from DHT:
+
+```bash
+
+$ fileGet [fileHash] 
+
+```
+
+Send a certain amount of coin to an address
+
+```bash
+
+$ send [amount] [ip] [amount]
+
+```
+
+Hash a file
+
+```bash
+
+$ hash [filename]
+
 ```
 
 Listing all files stored for IPFS
@@ -87,28 +132,29 @@ Exiting Program
 $ exit
 ```
 
+#### Notes:
 
-## gRPC API
+* Files that are on the network should be in the files folder. This can be done manually or by using the CLI
 
-* RecordFileRequestTransaction: Tell blockchain of a completed transaction
+* Inside the config file, set your public key and private key location. If you don't want to, the CLI will generate a key-pair for you.
 
-* RequestAllAvailableFileNames
+* Only .txt, .json and .mp4 file formats are currently supported.
 
-* PlaceFileRequest: Ask market to tell you ALL possible locations where file is store 
-
-* NotifyFileStore Tell market you will store a file for future access
-
-* NotifyFileUnstore: Tell market you no longer have a specific file
-
-* SendFile: Send a File
 
 ## HTTP Functionality
 
 Server should only look for two things:
 
-* Route /requestFile with a GET Request, parameter of `filename`, a string that represents name of file
+* Route /requestFile/ with a GET Request, parameter of `filename`, a string that represents name of file
 
-* Route /storeFile with a GET Request, similar to the route /requestFile
+* Route /storeFile/ with a GET Request, similar to the route /requestFile
+
+* Route /sendTransaction with a POST Request, must send the transaction and a signed version of the transaction
+
+
+## gRPC protocol
+
+Currently in a state of flux, will be update when anything changes
 
 
 

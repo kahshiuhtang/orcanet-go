@@ -61,7 +61,7 @@ func NewDataStore(path string) *DataStore {
 }
 
 func HashFile(address string) []byte {
-	f, err := os.Open(address)
+	f, err := os.Open("./files/" + address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,6 +73,7 @@ func HashFile(address string) []byte {
 	}
 
 	fmt.Printf("%x", h.Sum(nil))
+	fmt.Println("")
 	return h.Sum(nil)
 
 }

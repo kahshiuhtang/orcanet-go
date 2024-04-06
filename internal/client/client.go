@@ -2,12 +2,14 @@ package client
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"orca-peer/internal/hash"
+	orcaHash "orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 )
@@ -66,15 +68,90 @@ func (client *Client) ImportFile(filePath string) {
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
 }
 
-func (client *Client) GetFileOnce(ip, port, filename string) error {
-	data, err := client.getData(ip, port, filename)
+type Data struct {
+	Bytes               []byte `json:"bytes"`
+	UnlockedTransaction []byte `json:"transaction"`
+	PublicKey           string `json:"public_key"`
+}
+
+func SendTransaction(price float64, ip string, port string, publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) {
+	cost := orcaHash.GeneratePriceBytes(price)
+	byteBuffer := bytes.NewBuffer(cost)
+	pubKeyString, err := orcaHash.ExportRsaPublicKeyAsPemStr(publicKey)
+	if err != nil {
+		fmt.Println("Error sending public key in header:", err)
+		return
+	}
+	data := Data{
+		Bytes:               byteBuffer.Bytes(),
+		UnlockedTransaction: cost,
+		PublicKey:           string(pubKeyString),
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/sendTransaction", ip, port), bytes.NewReader(jsonData))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/octet-stream")
+	fmt.Println("Verifying Signature...")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	} else {
+		fmt.Println("Send Request")
+	}
+	defer resp.Body.Close()
+
+}
+func (client *Client) GetFileOnce(ip, port, filename string) {
+	/*
+		file_hash := client.name_map.GetFileHash(filename)
+		if file_hash == "" {
+			fmt.Println("Error: do not have hash for the file")
+			return
+		}
+	*/
+  // data, err := client.getData(ip, port, filename)
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("Response:")
+	fmt.Println(resp)
+	fmt.Println("ResponseBody:")
+	fmt.Println(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return
+		}
+		fmt.Printf("\nError: %s\n> ", body)
+		return
+	}
+
 	// Create the directory if it doesn't exist
 	err = os.MkdirAll("./files/requested/", 0755)
 	if err != nil {
-		return err
+		panic(err)
+	}
+
+	// Create file
+	out, err := os.Create("./files/requested/" + filename)
+	if err != nil {
+		return
 	}
 
 	err = os.WriteFile(filepath.Join("./files/requested/", filename), data, 0666)

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"fmt"
 	"net"
 	orcaClient "orca-peer/internal/client"
@@ -10,10 +11,11 @@ import (
 	orcaStatus "orca-peer/internal/status"
 	orcaStore "orca-peer/internal/store"
 	"os"
+	"strconv"
 	"strings"
 )
 
-func StartCLI(bootstrapAddress *string) {
+func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) {
 	fmt.Println("Loading...")
 	ctx, dht := orcaServer.CreateDHTConnection(bootstrapAddress)
 	fmt.Println("Welcome to Orcanet!")
@@ -136,6 +138,26 @@ func StartCLI(bootstrapAddress *string) {
 			for _, file := range files {
 				fmt.Println(file.Name)
 			}
+		case "hash":
+			if len(args) == 1 {
+				orcaHash.HashFile(args[0])
+			} else {
+				fmt.Println("Usage: hash [fileName]")
+				fmt.Println()
+			}
+		case "send":
+			if len(args) == 3 {
+				cost, err := strconv.ParseFloat(args[0], 64)
+				if err != nil {
+					fmt.Println("Error parsing amount to send")
+					continue
+				}
+				orcaClient.SendTransaction(cost, args[1], args[2], pubKey, privKey)
+			} else {
+				fmt.Println("Usage: send [amount] [ip] [port]")
+				fmt.Println()
+			}
+
 		case "exit":
 			fmt.Println("Exiting...")
 			return
@@ -159,12 +181,17 @@ func StartCLI(bootstrapAddress *string) {
 			fmt.Println(" store [ip] [port] [filename]   Request storage of a file")
 			fmt.Println(" getdir [ip] [port] [path]     Request a directory")
 			fmt.Println(" storedir [ip] [port] [path]   Request storage of a directory")
+			fmt.Println(" putKey [key] [value]           Put a key in the DHT")
+			fmt.Println(" getKey [key]                   Retreieve key from DHT")
 			fmt.Println(" import [filepath]              Import a file")
+			fmt.Println(" fileGet [fileHash]            Get the file from the network")
+			fmt.Println(" send [amount] [ip] [amount]    Send an amount of money to network")
+			fmt.Println(" hash [fileName]                Get the hash of a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" location                       Print your location")
 			fmt.Println(" network                        Test speed of network")
 			fmt.Println(" exit                           Exit the program")
-			fmt.Println()
+			fmt.Print()
 		default:
 			fmt.Println("Unknown command. Type 'help' for available commands.")
 			fmt.Println()

@@ -4,7 +4,11 @@ go 1.21.4
 
 require (
 	github.com/cbergoon/speedtest-go v1.1.0
-	google.golang.org/grpc v1.62.0
+	github.com/libp2p/go-libp2p v0.33.2
+	github.com/libp2p/go-libp2p-kad-dht v0.25.2
+	github.com/libp2p/go-libp2p-record v0.2.0
+	github.com/multiformats/go-multiaddr v0.12.3
+	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.32.0
 )
 
@@ -34,6 +38,7 @@ require (
 )
 
 require (
+	aead.dev/minisign v0.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -62,10 +67,7 @@ require (
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.33.2 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.25.2
-	github.com/libp2p/go-libp2p-record v0.2.0
 	github.com/libp2p/go-msgio v0.3.0 // indirect
 	github.com/libp2p/go-nat v0.2.0 // indirect
 	github.com/libp2p/go-netroute v0.2.1 // indirect
@@ -80,7 +82,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.12.3 // indirect
 	github.com/multiformats/go-multiaddr-dns v0.3.1 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
