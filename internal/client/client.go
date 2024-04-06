@@ -112,7 +112,7 @@ func SendTransaction(price float64, ip string, port string, publicKey *rsa.Publi
 	defer resp.Body.Close()
 
 }
-func (client *Client) GetFileOnce(ip, port, filename string) {
+func (client *Client) GetFileOnce(ip, port, filename string) error {
 	/*
 		file_hash := client.name_map.GetFileHash(filename)
 		if file_hash == "" {
@@ -120,7 +120,7 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 			return
 		}
 	*/
-  // data, err := client.getData(ip, port, filename)
+	data, err := client.getData(ip, port, filename)
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
 	if err != nil {
 		return err
@@ -136,10 +136,10 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println("Error reading response body:", err)
-			return
+			return err
 		}
 		fmt.Printf("\nError: %s\n> ", body)
-		return
+		return err
 	}
 
 	// Create the directory if it doesn't exist
@@ -149,9 +149,9 @@ func (client *Client) GetFileOnce(ip, port, filename string) {
 	}
 
 	// Create file
-	out, err := os.Create("./files/requested/" + filename)
+	_, err = os.Create("./files/requested/" + filename)
 	if err != nil {
-		return
+		return err
 	}
 
 	err = os.WriteFile(filepath.Join("./files/requested/", filename), data, 0666)
