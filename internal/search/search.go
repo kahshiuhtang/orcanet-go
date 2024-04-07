@@ -1,4 +1,4 @@
-package main
+package search
 
 import (
 	"fmt"
@@ -14,78 +14,51 @@ type FileInfo struct {
 	Cost float64
 }
 
-func main() {
-	dirname := "new"
-
-	// arr := getAllFiles()
-	// for _, file := range arr {
-	// 	fmt.Printf("File Name: %s\n", file.Name)
-	// 	fmt.Printf("Size: %d bytes\n", file.Size)
-	// 	fmt.Printf("Hash: %s\n", file.Hash)
-	// 	fmt.Printf("Cost: $%.2f\n", file.Cost)
-	// 	// Print more fields if needed
-	// 	fmt.Println()
-	// }
-
-
-	//return
-
-	for {
-		// Prompt the user for the filename
-		fmt.Print("Enter the filename (or type 'exit' to quit): ")
-		var filename string
-		fmt.Scanln(&filename)
-
-		if filename == "exit" {
-			break // Exit the loop if the user types 'exit'
-		}
-
-		dir, err := os.Open(dirname)
-		if err != nil {
-			fmt.Println("Error opening directory:", err)
-			return
-		}
-		defer dir.Close()
-
-		files, err := dir.Readdir(-1)
-		if err != nil {
-			fmt.Println("Error reading directory:", err)
-			return
-		}
-
-		fileFound := false
-		for _, file := range files {
-			if file.Name() == filename {
-				fmt.Println("File found:", file.Name())
-				fileReader(dirname, file.Name())
-				fileFound = true
-				break
-			}
-		}
-
-		if !fileFound {
-			fmt.Println("File not found")
-		}
-	}
-}
-
-func getAllFiles() []FileInfo {
-
-	// Create an array to store file objects
-	var fileArr []FileInfo
-
-	dirname := "new"
+func SearchForFile(dirname string, filename string) (bool, error) {
 	dir, err := os.Open(dirname)
+	if err != nil {
+		fmt.Println("Error opening directory:", err)
+		return false, err
+	}
+	defer dir.Close()
+
 	files, err := dir.Readdir(-1)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
-		return nil
+		return false, err
+	}
+
+	fileFound := false
+	for _, file := range files {
+		if file.Name() == filename {
+			fmt.Println("File found:", file.Name())
+			fileFound = true
+			break
+		}
+	}
+
+	if !fileFound {
+		fmt.Println("File not found")
+	}
+	return fileFound, nil
+}
+
+func GetAllFiles(dirname string) ([]FileInfo, error) {
+
+	// Create an array to store file objects
+	var fileArr []FileInfo
+	dir, err := os.Open(dirname)
+	if err != nil {
+		fmt.Println("Error opening directory:", err)
+		return nil, err
+	}
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		fmt.Println("Error reading directory:", err)
+		return nil, err
 	}
 
 	for _, file := range files {
-	//	fmt.Println("File found:", file.Name())
-	//	fmt.Printf("File Name: %s, Size: %d bytes\n", file.Name, file.Size)
-
 		fileInfoObject := FileInfo{
 			Name: file.Name(),
 			Size: file.Size(),
@@ -95,11 +68,11 @@ func getAllFiles() []FileInfo {
 		fileArr = append(fileArr, fileInfoObject)
 	}
 
-	return fileArr
+	return fileArr, nil
 
 }
 
-func fileReader(dirname string, filename string) {
+func OutputFileContents(dirname string, filename string) {
 	path := dirname + "/" + filename
 	f, err := os.Open(path)
 	if err != nil {
