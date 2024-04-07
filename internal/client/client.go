@@ -29,43 +29,43 @@ type FileData struct {
 	Content  []byte `json:"content"`
 }
 
-func (client *Client) ImportFile(filePath string) {
+func (client *Client) ImportFile(filePath string) error {
 	// Extract filename from the provided file path
 	_, fileName := filepath.Split(filePath)
 	if fileName == "" {
-		fmt.Print("\nProvided path is a directory, not a file\n\n> ")
-		return
+		return fmt.Errorf("Provided path is a directory, not a file")
 	}
 
 	// Open the source file
 	file, err := os.Open(filePath)
 	if err != nil {
 		fmt.Print("\nFile does not exist\n\n> ")
-		return
+		return err
 	}
 	defer file.Close()
 
 	// Create the directory if it doesn't exist
 	err = os.MkdirAll("./files", 0755)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Save the file to the destination directory with the same filename
 	destinationPath := filepath.Join("./files", fileName)
 	destinationFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return
+		return err
 	}
 	defer destinationFile.Close()
 
 	// Copy the contents of the source file to the destination file
 	_, err = io.Copy(destinationFile, file)
 	if err != nil {
-		return
+		return err
 	}
 
 	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
+	return nil
 }
 
 type Data struct {
@@ -121,6 +121,9 @@ func (client *Client) GetFileOnce(ip, port, filename string) error {
 		}
 	*/
 	data, err := client.getData(ip, port, filename)
+	if err != nil {
+		return err
+	}
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, filename))
 	if err != nil {
 		return err
@@ -165,7 +168,7 @@ func (client *Client) GetFileOnce(ip, port, filename string) error {
 
 func (client *Client) RequestStorage(ip, port, filename string) (string, error) {
 	// Read file content
-	content, err := os.ReadFile("./files/documents/" + filename)
+	content, err := os.ReadFile("./files/requested/" + filename)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
 		return "", err
