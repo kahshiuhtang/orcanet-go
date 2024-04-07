@@ -60,21 +60,22 @@ func NewDataStore(path string) *DataStore {
 	}
 }
 
-func HashFile(address string) []byte {
+func HashFile(address string) ([]byte, error) {
 	f, err := os.Open("./files/" + address)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer f.Close()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
 
 	fmt.Printf("%x", h.Sum(nil))
 	fmt.Println("")
-	return h.Sum(nil)
+	return h.Sum(nil), nil
 
 }
 

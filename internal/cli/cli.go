@@ -99,9 +99,14 @@ func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.Priv
 		case "fileStore":
 			if len(args) == 1 {
 				go func() {
-					fileHash := string(orcaHash.HashFile(args[0]))
+					fileHash, err := orcaHash.HashFile(args[0])
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					fileHashStr := string(fileHash)
 					address := "localhost" + ":" + port
-					orcaServer.PlaceKey(ctx, dht, fileHash, address)
+					orcaServer.PlaceKey(ctx, dht, fileHashStr, address)
 				}()
 			} else {
 				fmt.Println("Usage: fileStore [file path]")
