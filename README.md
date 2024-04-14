@@ -157,7 +157,7 @@ $ exit
 
 ## HTTP Functionality
 
-Here is all of the routes available on the HTTP server that is started when the peer-node loads: 
+Here is all of the routes available on the HTTP server that is started when the peer-node loads. Most routes should return 400 if an issue with the parameters sent by the client did not work, 405 if the wrong method type (GET, POST) was used, 500 if there was an error creating, searching or opening files and 200 if everything is successful. If a response is sent inside of an array, that indicates that at minimum, 0 json objects could be sent but more than 1 json object could also be inside of that json array. If not explicitly stated, the RESPONSE BODY should be a json object with a single field name "status", explaing the current status of the request. 
 
 1. Route /getFile is a POST route. This will send back the data from any file that is found LOCALLY. It will first look in the files folder, then files/requested and finally files/stored. You can send either a filename or a filehash.
 
@@ -318,6 +318,138 @@ REQUEST BODY:
 	"originalFileName":"string" 
 }
 ```
+
+13. Route /updateActivityName is a POST Request. You will update the name of an activity byt providing a NEW name and the activity's id.
+
+REQUEST BODY: 
+```json
+{
+    "id":"int",
+    "name":"string"
+}
+```
+
+14. Route /removeActivity is a POST Request. It will remove a tracked activity that
+
+REQUEST BODY: 
+```json
+{
+    "id":"int",
+}
+```
+
+15. Route /getActivities is a GET Request. It will return a list of all activities that are currently being tracked and stored.
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+[
+    {
+        "id":"int" ,  
+        "name":"string",
+        "size": "string",
+        "hash": "string",
+        "Status": "string",
+        "showDropdown": "bool",  
+        "peers": "int"    
+    }
+]
+```
+
+16. Route /setActivity is a POST Request. This will add a new activity to the list of activities that is being tracked.
+
+REQUEST BODY:
+```json
+{
+    "id":"int" ,  
+    "name":"string",
+    "size": "string",
+    "hash": "string",
+    "Status": "string",
+    "showDropdown": "bool",  
+    "peers": "int"    
+}
+```
+
+17. Route /addPeer is a POST Request. It will add a new peer to the list of peers OUR peer is aware of.
+
+REQUEST BODY:
+```json
+{
+	"location":"string", 
+	"latency":"string", 
+	"peerID":"string", 
+	"connection":"string", 
+	"openStreams":"string", 
+	"flagUrl":"string", 
+}
+```
+
+17. Route /getPeer is a GET Request. It will get information about a peer, given a peer ID.
+
+REQUEST BODY:
+```json
+{
+	"peerID":"string",
+}
+```
+
+RESPONSE BODY:
+```json
+{
+	"location":"string", 
+	"latency":"string", 
+	"peerID":"string", 
+	"connection":"string", 
+	"openStreams":"string", 
+	"flagUrl":"string", 
+}
+```
+
+18. Route /getAllPeers is a GET Request. It will get you an array of information about every peer node THIS peer node is aware of. 
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+[
+    {
+        "location":"string", 
+        "latency":"string", 
+        "peerID":"string", 
+        "connection":"string", 
+        "openStreams":"string", 
+        "flagUrl":"string", 
+    }
+]
+```
+
+19. Route /updatePeer is a POST Request. It will update the an entire status of a peer, given a peer id. You cannot currently change the peer id from a POST Request. You would have to remove the peer and then add it back through different HTTP routes.
+
+REQUEST BODY:
+
+```json
+{
+	"location":"string", 
+	"latency":"string", 
+	"peerID":"string", 
+	"connection":"string", 
+	"openStreams":"string", 
+	"flagUrl":"string", 
+}
+```
+
+20. Route /removePeer is a POST Request. It will remove a peer based on a specific peerId.
+
+REQUEST BODY:
+
+```json
+{
+	"peerID":"string",
+}
+```
+
 
 ## gRPC protocol
 
