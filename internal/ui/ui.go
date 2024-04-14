@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -58,8 +59,48 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getFileInfo(w http.ResponseWriter, r *http.Request) {
+type FileInfo struct {
+	Filename     string `json:"filename"`
+	Filesize     int    `json:"filesize"`
+	Filehash     string `json:"filehash"`
+	Lastmodified string `json:"lastmodified"`
+	Filecontent  string `json:"filecontent"`
+}
 
+func getFileInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		queryParams := r.URL.Query()
+
+		// Retrieve specific query parameters by key
+		filename := queryParams.Get("filename")
+		if st, err := os.Stat("files/" + filename); !os.IsNotExist(err) {
+			fileData, err := os.ReadFile("files/" + filename)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			lenData := len(fileData)
+			base64Encode := base64.StdEncoding.EncodeToString(fileData)
+			fileInfoResp := FileInfo{
+				Filename:     filename,
+				Filesize:     lenData,
+				Filehash:     "",
+				Lastmodified: st.ModTime().String(),
+				Filecontent:  base64Encode,
+			}
+			jsonData, err := json.Marshal(fileInfoResp)
+			if err != nil {
+				fmt.Println("Error marshaling JSON:", err)
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			w.Write(jsonData)
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		return
+	}
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +108,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method == http.MethodPost {
 		contentType := r.Header.Get("Content-Type")
 		switch contentType {

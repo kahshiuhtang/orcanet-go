@@ -293,6 +293,21 @@ RESPONSE BODY:
 }
 ```
 
+11. Route /getFileInfo?filename="" is a GET route. This will return the status of a file that was found in the files directory. The filecontent is a base64 string.
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+ {
+    "filename": "string",
+    "filesize": "integer",
+    "filehash": "string",
+    "lastmodified":"string",
+    "filecontent":"string"
+}
+```
+
 ## gRPC protocol
 
 Currently in a state of flux, will be update when anything changes
