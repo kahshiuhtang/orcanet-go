@@ -178,7 +178,7 @@ REQUEST BODY:
 }
 ```
 
-3. Route /uploadFile is a POST route. This will move a local file, from anywhere on the computer, into the <i>files</i> directory.
+3. Route /uploadFile is a POST route. This will move a local file, from anywhere on the computer, into the <i>files</i> directory. You should give the absolute path, or a path that is relative to the root directory of the peer node folder.
 
 REQUEST BODY:
 ```json

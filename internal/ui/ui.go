@@ -1,9 +1,12 @@
 package ui
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,6 +15,10 @@ import (
 type GetFileJSONBody struct {
 	Filename string `json:"filename"`
 	CID      string `json:"cid"`
+}
+
+type UploadFileJSONBody struct {
+	Filepath string `json:"filepath"`
 }
 
 func getFile(w http.ResponseWriter, r *http.Request) {
@@ -28,23 +35,26 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if payload.Filename == "" && payload.CID == "" {
+				w.WriteHeader(http.StatusBadRequest)
 				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
 				return
 			}
-			notFound := false
+			fileaddress := ""
 
-			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
+			if _, err := os.Stat("files/stored/" + payload.Filename); !os.IsNotExist(err) {
+				fileaddress = "files/stored/" + payload.Filename
+			}
+			if _, err := os.Stat("files/requested/" + payload.Filename); !os.IsNotExist(err) && fileaddress == "" {
+				fileaddress = "files/requested/" + payload.Filename
+			}
+			if _, err := os.Stat("files/" + payload.Filename); !os.IsNotExist(err) && fileaddress == "" {
+				fileaddress = "files/" + payload.Filename
+			}
+			if fileaddress != "" {
 
-			}
-			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
-			}
-			if _, err := os.Stat("files" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
-			}
-			if !notFound {
-				http.Error(w, "File not found in local storage", http.StatusNotFound)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: Cannot find file inside files directory")
 				return
 			}
 		default:
@@ -76,25 +86,36 @@ func getFileInfo(w http.ResponseWriter, r *http.Request) {
 		if st, err := os.Stat("files/" + filename); !os.IsNotExist(err) {
 			fileData, err := os.ReadFile("files/" + filename)
 			if err != nil {
-				fmt.Println("Error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Failed to read in file from given path")
 				return
 			}
 			lenData := len(fileData)
 			base64Encode := base64.StdEncoding.EncodeToString(fileData)
+			hash := sha256.Sum256(fileData)
+
+			// Encode the hash as a hexadecimal string
+			hexHash := hex.EncodeToString(hash[:])
+
 			fileInfoResp := FileInfo{
 				Filename:     filename,
 				Filesize:     lenData,
-				Filehash:     "",
+				Filehash:     hexHash,
 				Lastmodified: st.ModTime().String(),
 				Filecontent:  base64Encode,
 			}
 			jsonData, err := json.Marshal(fileInfoResp)
 			if err != nil {
-				fmt.Println("Error marshaling JSON:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Failed to convert JSON Data into a string")
+				return
 			}
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
 			w.Write(jsonData)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -102,9 +123,83 @@ func getFileInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func writeStatusUpdate(w http.ResponseWriter, message string) {
+	responseMsg := map[string]interface{}{
+		"status": message,
+	}
+	responseMsgJsonString, err := json.Marshal(responseMsg)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseMsgJsonString)
+}
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload UploadFileJSONBody
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			fileData, err := os.ReadFile(payload.Filepath)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			if _, err := os.Stat(payload.Filepath); !os.IsNotExist(err) {
+				sourceFile, err := os.Open(payload.Filepath)
+				if err != nil {
+					fmt.Println("Error opening source file:", err)
+					return
+				}
+				defer sourceFile.Close()
+				hash := sha256.Sum256(fileData)
 
+				// Encode the hash as a hexadecimal string
+				hexHash := hex.EncodeToString(hash[:])
+
+				// Create the destination file in the destination folder
+				destinationFilePath := "files/" + hexHash
+				destinationFile, err := os.Create(destinationFilePath)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+					return
+				}
+				defer destinationFile.Close()
+
+				_, err = io.Copy(destinationFile, sourceFile)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+				writeStatusUpdate(w, "Successfully uploaded file from local computer into files directory")
+				return
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		return
+	}
 }
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
