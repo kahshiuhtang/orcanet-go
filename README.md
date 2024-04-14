@@ -169,6 +169,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 2. Route /requestRemoteFile is a POST route. This will request a file from the network via a hash and send the file back to the user. The file, if found, will be stored in files/requested folder.
 
 REQUEST BODY:
@@ -177,6 +179,8 @@ REQUEST BODY:
     "cid": "string"
 }
 ```
+
+---
 
 3. Route /uploadFile is a POST route. This will move a local file, from anywhere on the computer, into the <i>files</i> directory. You should give the absolute path, or a path that is relative to the root directory of the peer node folder.
 
@@ -187,6 +191,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 4. Route /deleteFile is a POST route. This will delete a file that is stored from within the files folder
 
 REQUEST BODY:
@@ -196,6 +202,8 @@ REQUEST BODY:
     "filepath": "string"
 }
 ```
+
+---
 
 5. Route /getAllFiles is a GET route. This will return a json list of all files that are in the <i>files/</i> directory. This is a list of all files that have been imported by the user from the local machine.
 
@@ -210,9 +218,10 @@ RESPONSE BODY:
     "filehash": "string",
     "lastmodified":"string"
     },
-    ...
 ]
 ```
+
+---
 
 6. Route /getAllStoredFiles is a GET route. This will return a json list of all files that are in the <i>files/stored</i> directory. This is a list of all files that are being stored by the peer on the network.
 
@@ -227,9 +236,10 @@ RESPONSE BODY:
     "filehash": "string",
     "lastmodified":"string"
     },
-    ...
 ]
 ```
+
+---
 
 7. Route /getAllRequestedFiles is a GET route. This will return a json list of all files that are in the <i>files/requested</i> directory. THis a list of all the files requested by the peer.
 
@@ -244,9 +254,10 @@ RESPONSE BODY:
     "filehash": "string",
     "lastmodified":"string"
     },
-    ...
 ]
 ```
+
+---
 
 8. Route /requestFile/:filename with a GET Request. You will need to pass the name of the file. This is called by the peer-node itself to handle file transfer.
 
@@ -261,6 +272,8 @@ RESPONSE BODY:
 }
 ```
 
+---
+
 9. Route /storeFile/:filename with a GET Request, similar to the route /requestFile. This is called by the peer-node itself to send market a notice that THIS peer-node is storing a file on this local machine.
 
 Example: GET /requestFile/in.txt
@@ -274,6 +287,7 @@ RESPONSE BODY:
 }
 ```
 
+---
 
 10. Route /sendTransaction with a POST Request, must send the transaction and a signed version of the transaction. The body should be an octet-stream of the json object that is described below in the request body.
 
@@ -293,6 +307,8 @@ RESPONSE BODY:
 }
 ```
 
+---
+
 11. Route /getFileInfo?filename="" is a GET route. This will return the status of a file that was found in the files directory. The filecontent is a base64 string.
 
 REQUEST BODY: NONE
@@ -308,6 +324,8 @@ RESPONSE BODY:
 }
 ```
 
+---
+
 12. Route /writeFile is a POST route. This is the API route for the uploadfile function. It will take the contents of a file as a base64 string, write it to the specified file.
 
 REQUEST BODY: 
@@ -319,6 +337,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 13. Route /updateActivityName is a POST Request. You will update the name of an activity byt providing a NEW name and the activity's id.
 
 REQUEST BODY: 
@@ -329,6 +349,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 14. Route /removeActivity is a POST Request. It will remove a tracked activity that
 
 REQUEST BODY: 
@@ -337,6 +359,8 @@ REQUEST BODY:
     "id":"int",
 }
 ```
+
+---
 
 15. Route /getActivities is a GET Request. It will return a list of all activities that are currently being tracked and stored.
 
@@ -357,6 +381,8 @@ RESPONSE BODY:
 ]
 ```
 
+---
+
 16. Route /setActivity is a POST Request. This will add a new activity to the list of activities that is being tracked.
 
 REQUEST BODY:
@@ -372,6 +398,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 17. Route /addPeer is a POST Request. It will add a new peer to the list of peers OUR peer is aware of.
 
 REQUEST BODY:
@@ -385,6 +413,8 @@ REQUEST BODY:
 	"flagUrl":"string", 
 }
 ```
+
+---
 
 17. Route /getPeer is a GET Request. It will get information about a peer, given a peer ID.
 
@@ -407,6 +437,8 @@ RESPONSE BODY:
 }
 ```
 
+---
+
 18. Route /getAllPeers is a GET Request. It will get you an array of information about every peer node THIS peer node is aware of. 
 
 REQUEST BODY: NONE
@@ -425,6 +457,8 @@ RESPONSE BODY:
 ]
 ```
 
+---
+
 19. Route /updatePeer is a POST Request. It will update the an entire status of a peer, given a peer id. You cannot currently change the peer id from a POST Request. You would have to remove the peer and then add it back through different HTTP routes.
 
 REQUEST BODY:
@@ -440,6 +474,8 @@ REQUEST BODY:
 }
 ```
 
+---
+
 20. Route /removePeer is a POST Request. It will remove a peer based on a specific peerId.
 
 REQUEST BODY:
@@ -449,6 +485,8 @@ REQUEST BODY:
 	"peerID":"string",
 }
 ```
+
+---
 
 
 ## gRPC protocol
