@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 )
 
 type GetFileJSONBody struct {
@@ -24,7 +25,25 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
-			fmt.Fprintf(w, "Filename extracted from JSON: %s\n", payload.Filename)
+			if payload.Filename == "" && payload.CID == "" {
+				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
+				return
+			}
+			notFound := false
+			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
+				notFound = true
+			}
+			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
+				notFound = true
+			}
+			if _, err := os.Stat("files" + payload.Filename); !os.IsNotExist(err) {
+				notFound = true
+			}
+			if !notFound {
+				http.Error(w, "File not found in local storage", http.StatusNotFound)
+				return
+			}
+
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)

@@ -132,6 +132,20 @@ Exiting Program
 $ exit
 ```
 
+#### File System:
+
+* There is a folder called <i>files</i>. This is where all the files that are available to the user is stored
+
+* Any file directly stored inside <i>files</i> folder is considered <i>uploaded</i> to the client.
+
+* Any file that has been requested by the user is stored in the <i>files/requested</i> folder.
+
+* Any file that is available to be requested for by anyone on the network is in <i>files/stored</i>.
+
+* Technically, you can import the files manually if you drag them inside the desired folder. There is currently no protection against this.
+
+* The <i>transactions</i> folder stores all of the transactions that have been processed and stored.
+
 #### Notes:
 
 * Files that are on the network should be in the files folder. This can be done manually or by using the CLI
