@@ -30,13 +30,13 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			notFound := false
-			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
+			if _, err := os.Stat("files/" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
 			}
-			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
+			if _, err := os.Stat("files/requested/" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
 			}
-			if _, err := os.Stat("files" + payload.Filename); !os.IsNotExist(err) {
+			if _, err := os.Stat("files/stored/" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
 			}
 			if !notFound {
