@@ -253,7 +253,7 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 
 	}
 
-	fmt.Printf("\nFile %s sent!\n\n> ", filename)
+	fmt.Printf("\nFile %s sent!\n> ", filename)
 }
 
 type FileData struct {
@@ -294,7 +294,7 @@ func (server *Server) storeFile(w http.ResponseWriter, r *http.Request, confirmi
 	}
 
 	fmt.Fprintf(w, "%s", file_hash)
-	fmt.Printf("\nStored file %s hash %s!\n\n> ", fileData.FileName, file_hash)
+	fmt.Printf("\nStored file %s hash %s!\n> ", fileData.FileName, file_hash)
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {

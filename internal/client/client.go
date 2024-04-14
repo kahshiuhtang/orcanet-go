@@ -39,7 +39,7 @@ func (client *Client) ImportFile(filePath string) error {
 	// Open the source file
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Print("\nFile does not exist\n\n> ")
+		fmt.Print("\nFile does not exist\n> ")
 		return err
 	}
 	defer file.Close()
@@ -64,7 +64,7 @@ func (client *Client) ImportFile(filePath string) error {
 		return err
 	}
 
-	fmt.Printf("\nFile '%s' imported successfully!\n\n> ", fileName)
+	fmt.Printf("\nFile '%s' imported successfully!\n> ", fileName)
 	return nil
 }
 
@@ -162,7 +162,7 @@ func (client *Client) GetFileOnce(ip, port, filename string) error {
 		return err
 	}
 
-	fmt.Printf("\nFile %s downloaded successfully!\n\n> ", filename)
+	fmt.Printf("\nFile %s downloaded successfully!\n> ", filename)
 	return nil
 }
 
@@ -330,7 +330,7 @@ func (client *Client) getData(ip, port, filename string) ([]byte, error) {
 	}
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s/requestFile/%s", ip, port, file_hash))
 	if err != nil {
-		fmt.Printf("Error: %s\n\n", err)
+		fmt.Printf("Error: %s\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
