@@ -259,20 +259,38 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
+func joinStrings(strings []string, delimiter string) string {
+	if len(strings) == 0 {
+		return ""
+	}
+	result := strings[0]
+	for _, s := range strings[1:] {
+		result += delimiter + s
+	}
+	return result
+}
 func getActivities(w http.ResponseWriter, r *http.Request) {
-	backend.mutex.Lock()         // Lock for writing
-	defer backend.mutex.Unlock() // Ensure the lock is released
 	if r.Method == http.MethodGet {
-		contentType := r.Header.Get("Content-Type")
-		switch contentType {
-		case "application/json":
-
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+		allActivities, err := backend.GetActivities()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 			return
 		}
+		var activityStrings []string
+		for _, activity := range allActivities {
+			activityString, err := json.Marshal(activity)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			activityStrings = append(activityStrings, string(activityString))
+		}
+		jsonArrayString := "[" + joinStrings(activityStrings, ",") + "]"
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonArrayString))
+
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
@@ -282,8 +300,6 @@ func getActivities(w http.ResponseWriter, r *http.Request) {
 }
 
 func setActivity(w http.ResponseWriter, r *http.Request) {
-	backend.mutex.Lock()         // Lock for writing
-	defer backend.mutex.Unlock() // Ensure the lock is released
 	if r.Method == http.MethodPost {
 		contentType := r.Header.Get("Content-Type")
 		switch contentType {
@@ -295,6 +311,7 @@ func setActivity(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
+			backend.SetActivity(payload)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
@@ -313,8 +330,6 @@ type RemoveActivityJSONBody struct {
 }
 
 func removeActivity(w http.ResponseWriter, r *http.Request) {
-	backend.mutex.Lock()         // Lock for writing
-	defer backend.mutex.Unlock() // Ensure the lock is released
 	if r.Method == http.MethodPost {
 		contentType := r.Header.Get("Content-Type")
 		switch contentType {
@@ -326,6 +341,7 @@ func removeActivity(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
+			backend.RemoveActivity(payload.Id)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
@@ -340,13 +356,11 @@ func removeActivity(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateActivityJSONBody struct {
-	Id   int `json:"id"`
-	Name int `json:"name"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func updateActivityName(w http.ResponseWriter, r *http.Request) {
-	backend.mutex.Lock()         // Lock for writing
-	defer backend.mutex.Unlock() // Ensure the lock is released
 	if r.Method == http.MethodPost {
 		contentType := r.Header.Get("Content-Type")
 		switch contentType {
@@ -358,6 +372,7 @@ func updateActivityName(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
+			backend.UpdateActivityName(payload.Id, payload.Name)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
