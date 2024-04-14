@@ -157,14 +157,141 @@ $ exit
 
 ## HTTP Functionality
 
-Server should only look for two things:
+Here is all of the routes available on the HTTP server that is started when the peer-node loads: 
 
-* Route /requestFile/ with a GET Request, parameter of `filename`, a string that represents name of file
+1. Route /getFile is a POST route. This will send back the data from any file that is found LOCALLY. It will first look in the files folder, then files/requested and finally files/stored. You can send either a filename or a filehash.
 
-* Route /storeFile/ with a GET Request, similar to the route /requestFile
+REQUEST BODY:
+```json
+{
+    "filename": string,
+    "cid": string
+}
+```
 
-* Route /sendTransaction with a POST Request, must send the transaction and a signed version of the transaction
+2. Route /requestRemoteFile is a POST route. This will request a file from the network via a hash and send the file back to the user. The file, if found, will be stored in files/requested folder.
 
+REQUEST BODY:
+```json
+{
+    "cid": string
+}
+```
+
+3. Route /uploadFile is a POST route. This will move a local file, from anywhere on the computer, into the <i>files</i> directory.
+
+REQUEST BODY:
+```json
+{
+    "filepath": string
+}
+```
+
+4. Route /deleteFile is a POST route. This will delete a file that is stored from within the files folder
+
+REQUEST BODY:
+```json
+{
+    "filename": string,
+    "filepath": string
+}
+```
+
+5. Route /getAllFiles is a GET route. This will return a json list of all files that are in the <i>files/</i> directory. This is a list of all files that have been imported by the user from the local machine.
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+[
+    {
+    "filename": string,
+    "filesize": integer,
+    "filehash": string,
+    "lastmodified":string
+    },
+    ...
+]
+```
+
+6. Route /getAllStoredFiles is a GET route. This will return a json list of all files that are in the <i>files/stored</i> directory. This is a list of all files that are being stored by the peer on the network.
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+[
+    {
+    "filename": string,
+    "filesize": integer,
+    "filehash": string,
+    "lastmodified":string
+    },
+    ...
+]
+```
+
+7. Route /getAllRequestedFiles is a GET route. This will return a json list of all files that are in the <i>files/requested</i> directory. THis a list of all the files requested by the peer.
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+[
+    {
+    "filename": string,
+    "filesize": integer,
+    "filehash": string,
+    "lastmodified":string
+    },
+    ...
+]
+```
+
+8. Route /requestFile/:filename with a GET Request. You will need to pass the name of the file. This is called by the peer-node itself to handle file transfer.
+
+Example: GET /requestFile/in.txt
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+{
+    "status": string
+}
+```
+
+9. Route /storeFile/:filename with a GET Request, similar to the route /requestFile. This is called by the peer-node itself to send market a notice that THIS peer-node is storing a file on this local machine.
+
+Example: GET /requestFile/in.txt
+
+REQUEST BODY: NONE
+
+RESPONSE BODY:
+```json
+{
+    "status": string
+}
+```
+
+
+10. Route /sendTransaction with a POST Request, must send the transaction and a signed version of the transaction. The body should be an octet-stream of the json object that is described below in the request body.
+
+REQUEST BODY: NONE
+```json
+{
+    "bytes": bytes[],
+    "transaction": byte[],
+    "public_key": string
+}
+```
+
+RESPONSE BODY:
+```json
+{
+    "status": string
+}
+```
 
 ## gRPC protocol
 
