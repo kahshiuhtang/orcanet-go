@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type GetFileJSONBody struct {
@@ -30,14 +31,13 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			notFound := false
-			filePath := "./files"
+			
 			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
-				filePath = "./files/stored"
+				
 			}
 			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
-				filePath = "./files/requested"
 			}
 			if _, err := os.Stat("files" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
@@ -47,14 +47,6 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Attempt to delete the file
-			err := os.Remove(filePath)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-		
-			fmt.Println("File deleted successfully.")
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -90,24 +82,37 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
+			fmt.Println("filename:",payload.Filename)
 			if payload.Filename == "" && payload.CID == "" {
 				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
 				return
 			}
-			notFound := false
-			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
+			fileDir := "./files"
+			var filePath string
+
+			// Check if the file exists in the "stored" directory
+			storedFilePath := filepath.Join(fileDir, "stored", payload.Filename)
+			if _, err := os.Stat(storedFilePath); err == nil {
+				filePath = storedFilePath
 			}
-			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
+
+			// Check if the file exists in the "requested" directory
+			requestedFilePath := filepath.Join(fileDir, "requested", payload.Filename)
+			if _, err := os.Stat(requestedFilePath); err == nil {
+				filePath = requestedFilePath
 			}
-			if _, err := os.Stat("files" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
-			}
-			if !notFound {
-				http.Error(w, "File not found in local storage", http.StatusNotFound)
+			fmt.Println("filePath:",filePath)
+
+
+			// Attempt to delete the file
+			err := os.Remove(filePath)
+			if err != nil {
+				fmt.Println("Error:", err)
 				return
 			}
+		
+			fmt.Println("File deleted successfully.")
+			return;
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
