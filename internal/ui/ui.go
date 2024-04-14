@@ -31,10 +31,10 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			notFound := false
-			
+
 			if _, err := os.Stat("files/stored" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
-				
+
 			}
 			if _, err := os.Stat("files/requested" + payload.Filename); !os.IsNotExist(err) {
 				notFound = true
@@ -80,7 +80,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
 				return
 			}
-			fmt.Println("filename:",payload.Filename)
+			fmt.Println("filename:", payload.Filename)
 			if payload.Filename == "" && payload.CID == "" {
 				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
 				return
@@ -93,35 +93,22 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			if _, err := os.Stat(storedFilePath); err == nil {
 				filePath = storedFilePath
 			}
-<<<<<<< HEAD
-
 			// Check if the file exists in the "requested" directory
 			requestedFilePath := filepath.Join(fileDir, "requested", payload.Filename)
 			if _, err := os.Stat(requestedFilePath); err == nil {
 				filePath = requestedFilePath
 			}
-			fmt.Println("filePath:",filePath)
-
+			fmt.Println("filePath:", filePath)
 
 			// Attempt to delete the file
 			err := os.Remove(filePath)
 			if err != nil {
 				fmt.Println("Error:", err)
-=======
-			if _, err := os.Stat("files/requested/" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
-			}
-			if _, err := os.Stat("files/stored/" + payload.Filename); !os.IsNotExist(err) {
-				notFound = true
-			}
-			if !notFound {
-				http.Error(w, "File not found in local storage", http.StatusNotFound)
->>>>>>> 80282b7340adbe262c6ca0a80c4a3e6974731e9a
 				return
 			}
-		
+
 			fmt.Println("File deleted successfully.")
-			return;
+			return
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)

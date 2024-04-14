@@ -115,7 +115,7 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	err = os.WriteFile("./files/transactions/"+timestampStr, body, 0644)
 	if err != nil {
 		fmt.Println("Error writing transaction to file:", err)
-		sendStatusResponse(w, "Public Key does not unlock the locked transaction", http.StatusInternalServerError)
+		sendStatusResponse(w, "", http.StatusInternalServerError)
 		return
 	}
 	fmt.Println("Data in struct:", data)

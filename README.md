@@ -164,8 +164,8 @@ Here is all of the routes available on the HTTP server that is started when the 
 REQUEST BODY:
 ```json
 {
-    "filename": string,
-    "cid": string
+    "filename": "string",
+    "cid": "string"
 }
 ```
 
@@ -174,7 +174,7 @@ REQUEST BODY:
 REQUEST BODY:
 ```json
 {
-    "cid": string
+    "cid": "string"
 }
 ```
 
@@ -183,7 +183,7 @@ REQUEST BODY:
 REQUEST BODY:
 ```json
 {
-    "filepath": string
+    "filepath": "string"
 }
 ```
 
@@ -192,8 +192,8 @@ REQUEST BODY:
 REQUEST BODY:
 ```json
 {
-    "filename": string,
-    "filepath": string
+    "filename": "string",
+    "filepath": "string"
 }
 ```
 
@@ -205,10 +205,10 @@ RESPONSE BODY:
 ```json
 [
     {
-    "filename": string,
-    "filesize": integer,
-    "filehash": string,
-    "lastmodified":string
+    "filename": "string",
+    "filesize": "integer",
+    "filehash": "string",
+    "lastmodified":"string"
     },
     ...
 ]
@@ -222,10 +222,10 @@ RESPONSE BODY:
 ```json
 [
     {
-    "filename": string,
-    "filesize": integer,
-    "filehash": string,
-    "lastmodified":string
+    "filename": "string",
+    "filesize": "integer",
+    "filehash": "string",
+    "lastmodified":"string"
     },
     ...
 ]
@@ -239,10 +239,10 @@ RESPONSE BODY:
 ```json
 [
     {
-    "filename": string,
-    "filesize": integer,
-    "filehash": string,
-    "lastmodified":string
+    "filename": "string",
+    "filesize": "integer",
+    "filehash": "string",
+    "lastmodified":"string"
     },
     ...
 ]
@@ -257,7 +257,7 @@ REQUEST BODY: NONE
 RESPONSE BODY:
 ```json
 {
-    "status": string
+    "status": "string"
 }
 ```
 
@@ -270,7 +270,7 @@ REQUEST BODY: NONE
 RESPONSE BODY:
 ```json
 {
-    "status": string
+    "status": "string"
 }
 ```
 
@@ -280,16 +280,16 @@ RESPONSE BODY:
 REQUEST BODY: NONE
 ```json
 {
-    "bytes": bytes[],
-    "transaction": byte[],
-    "public_key": string
+    "bytes": "bytes[]",
+    "transaction": "byte[]",
+    "public_key": "string"
 }
 ```
 
 RESPONSE BODY:
 ```json
 {
-    "status": string
+    "status": "string"
 }
 ```
 
