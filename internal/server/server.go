@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"orca-peer/internal/hash"
+	ui "orca-peer/internal/ui"
 	"os"
 	"path/filepath"
 	"time"
@@ -119,6 +120,7 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	server := Server{
 		storage: hash.NewDataStore("files/stored/"),
 	}
+	ui.InitServer()
 	http.HandleFunc("/requestFile/", func(w http.ResponseWriter, r *http.Request) {
 		server.sendFile(w, r, confirming, confirmation)
 	})
