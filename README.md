@@ -308,6 +308,17 @@ RESPONSE BODY:
 }
 ```
 
+12. Route /writeFile is a POST route. This is the API route for the uploadfile function. It will take the contents of a file as a base64 string, write it to the specified file.
+
+REQUEST BODY: 
+```json
+{
+	"base64File":"string", 
+	"fileSize":"string", 
+	"originalFileName":"string" 
+}
+```
+
 ## gRPC protocol
 
 Currently in a state of flux, will be update when anything changes

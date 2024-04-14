@@ -386,6 +386,38 @@ func updateActivityName(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type WriteFileJSONBody struct {
+	Base64File       string `json:"base64File"`
+	Filesize         string `json:"fileSize"`
+	OriginalFileName string `json:"originalFileName"`
+}
+
+func writeFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload WriteFileJSONBody
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			backend.UploadFile(payload.Base64File, payload.OriginalFileName, payload.Filesize)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		return
+	}
+
+}
+
 func InitServer() {
 	backend = NewBackend()
 	http.HandleFunc("/getFile", getFile)
@@ -396,4 +428,5 @@ func InitServer() {
 	http.HandleFunc("/removeActivity", removeActivity)
 	http.HandleFunc("/setActivity", setActivity)
 	http.HandleFunc("/getActivities", getActivities)
+	http.HandleFunc("/writeFile", writeFile)
 }
