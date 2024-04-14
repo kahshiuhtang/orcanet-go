@@ -39,7 +39,7 @@ func (b *Backend) UploadFile(base64File string, originalFileName string, fileSiz
 		return err
 	}
 
-	tempFile, err := os.CreateTemp("", "upload-*")
+	tempFile, err := os.CreateTemp("", "files/"+originalFileName)
 	if err != nil {
 		return err
 	}

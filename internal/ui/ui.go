@@ -22,6 +22,7 @@ type UploadFileJSONBody struct {
 }
 
 var backend *Backend
+var peers *PeerStorage
 
 func getFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
@@ -418,8 +419,174 @@ func writeFile(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func addPeer(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload PeerInfo
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			peers.AddPeer(payload)
+			return
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		return
+	}
+
+}
+
+type PeerIdPOSTPayload struct {
+	PeerID string `json:"peerID"`
+}
+
+func getPeer(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload PeerIdPOSTPayload
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			currPeer, exists := peers.GetPeer(payload.PeerID)
+			if exists {
+				peerString, err := json.Marshal(currPeer)
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				w.Header().Set("Content-Type", "application/octet-stream")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(peerString))
+				return
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Unable to find a string with the given peer id")
+				return
+			}
+
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		return
+	}
+
+}
+func getAllPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload PeerIdPOSTPayload
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			allPeers := peers.GetAllPeers()
+			var peerStrings []string
+			for _, peer := range allPeers {
+				peerString, err := json.Marshal(peer)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					writeStatusUpdate(w, "Issue converting all peers into a string")
+					return
+				}
+				peerStrings = append(peerStrings, string(peerString))
+			}
+			jsonArrayPeerString := "[" + joinStrings(peerStrings, ",") + "]"
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(jsonArrayPeerString))
+			return
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		return
+	}
+
+}
+func updatePeer(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload PeerInfo
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				return
+			}
+			peers.UpdatePeer(payload.PeerID, payload)
+			return
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		return
+	}
+
+}
+
+func removePeer(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
+		case "application/json":
+			var payload PeerIdPOSTPayload
+			decoder := json.NewDecoder(r.Body)
+			if err := decoder.Decode(&payload); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+			}
+			peers.RemovePeer(payload.PeerID)
+			return
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		return
+	}
+
+}
+
 func InitServer() {
 	backend = NewBackend()
+	peers = NewPeerStorage()
 	http.HandleFunc("/getFile", getFile)
 	http.HandleFunc("/getFileInfo", getFileInfo)
 	http.HandleFunc("/uploadFile", uploadFile)
@@ -429,4 +596,9 @@ func InitServer() {
 	http.HandleFunc("/setActivity", setActivity)
 	http.HandleFunc("/getActivities", getActivities)
 	http.HandleFunc("/writeFile", writeFile)
+	http.HandleFunc("/removePeer", removePeer)
+	http.HandleFunc("/updatePeer", updatePeer)
+	http.HandleFunc("/getAllPeers", getAllPeers)
+	http.HandleFunc("/getPeer", getPeer)
+	http.HandleFunc("/addPeer", addPeer)
 }
