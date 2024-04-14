@@ -1,4 +1,4 @@
-package ui
+package api
 
 type Activity struct {
 	ID           int    `json:"id"`

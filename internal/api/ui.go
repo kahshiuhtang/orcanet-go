@@ -1,6 +1,7 @@
-package ui
+package api
 
 import (
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	orcaHash "orca-peer/internal/hash"
 	"os"
 	"path/filepath"
 )
@@ -23,6 +25,8 @@ type UploadFileJSONBody struct {
 
 var backend *Backend
 var peers *PeerStorage
+var publicKey *rsa.PublicKey
+var privateKey *rsa.PrivateKey
 
 func getFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
@@ -592,6 +596,7 @@ func removePeer(w http.ResponseWriter, r *http.Request) {
 func InitServer() {
 	backend = NewBackend()
 	peers = NewPeerStorage()
+	publicKey, privateKey = orcaHash.LoadInKeys()
 	http.HandleFunc("/getFile", getFile)
 	http.HandleFunc("/getFileInfo", getFileInfo)
 	http.HandleFunc("/uploadFile", uploadFile)
@@ -606,4 +611,6 @@ func InitServer() {
 	http.HandleFunc("/getAllPeers", getAllPeers)
 	http.HandleFunc("/getPeer", getPeer)
 	http.HandleFunc("/addPeer", addPeer)
+	http.HandleFunc("/sendMoney", sendMoney)
+	http.HandleFunc("/getLocation", getLocation)
 }

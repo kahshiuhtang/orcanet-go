@@ -96,7 +96,7 @@ Send a certain amount of coin to an address
 
 ```bash
 
-$ send [amount] [ip] [amount]
+$ send [amount] [ip] 
 
 ```
 
@@ -487,6 +487,42 @@ REQUEST BODY:
 ```
 
 ---
+
+21. Route /sendMoney is a POST Request. It will attempt to send a signed transaction of a certain amount of money to a user. It will use the public and private key files that are stored inside the config folder.
+
+REQUEST BODY:
+
+```json 
+{
+    "amount":"float64", 
+	"host":"string",  
+	"port":"string"  
+}
+```
+
+---
+
+22. Route /getLocation is a GET Request. It will get the current location of THIS peer node.
+
+REQUEST BODY: None
+
+RESPONSE BODY: 
+
+```json
+{
+    "ip":        "string", 
+	"network":   "string",
+	"city":      "string",
+	"region":    "string", 
+	"country":   "string", 
+	"latitude":  "string", 
+	"longitude": "string", 
+	"asn":       "string", 
+	"timezone":  "string", 
+	"continent": "string", 
+	"org":       "string" 
+}
+```
 
 
 ## gRPC protocol
