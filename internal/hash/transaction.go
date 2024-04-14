@@ -61,6 +61,9 @@ func SignFile(file []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
 	return signature, nil
 }
 func VerifySignature(file []byte, signature []byte, publicKey *rsa.PublicKey) error {
+	if publicKey == nil {
+		return errors.New("null private key")
+	}
 	hashed := sha256.Sum256(file)
 	return rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashed[:], signature)
 }
@@ -165,7 +168,7 @@ func LoadInKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
 			os.Exit(1)
 		}
 
-		publicKey := &privateKey.PublicKey
+		publicKey = &privateKey.PublicKey
 		pubBytes, err := ExportRsaPublicKeyAsPemStr(publicKey)
 		if err != nil {
 			fmt.Println("Error generating public key as PEM str:", err)
