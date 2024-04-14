@@ -33,13 +33,13 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 			var payload GetFileJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			if payload.Filename == "" && payload.CID == "" {
 				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
+				writeStatusUpdate(w, "Missing CID and Filename field in request")
 				return
 			}
 			fileaddress := ""
@@ -57,17 +57,17 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: Cannot find file inside files directory")
+				writeStatusUpdate(w, "Cannot find specified file inside files directory")
 				return
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 }
@@ -122,7 +122,7 @@ func getFileInfo(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		writeStatusUpdate(w, "Request must have the content header set as application/json")
 		return
 	}
 }
@@ -147,19 +147,21 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 			var payload UploadFileJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			fileData, err := os.ReadFile(payload.Filepath)
 			if err != nil {
-				fmt.Println("Error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Error reading in file from the Filepath specified.")
 				return
 			}
 			if _, err := os.Stat(payload.Filepath); !os.IsNotExist(err) {
 				sourceFile, err := os.Open(payload.Filepath)
 				if err != nil {
-					fmt.Println("Error opening source file:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					writeStatusUpdate(w, "Error getting information about file from file system.")
 					return
 				}
 				defer sourceFile.Close()
@@ -173,7 +175,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 				destinationFile, err := os.Create(destinationFilePath)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+					writeStatusUpdate(w, "Cannot create the file to store base64 data.")
 					return
 				}
 				defer destinationFile.Close()
@@ -181,26 +183,26 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 				_, err = io.Copy(destinationFile, sourceFile)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+					writeStatusUpdate(w, "Unable to copy base64 data.")
 					return
 				}
 				w.WriteHeader(http.StatusOK)
 				writeStatusUpdate(w, "Successfully uploaded file from local computer into files directory")
 				return
 			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "File specified does not exist.")
 				return
 			}
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Successfully uploaded file from local computer into files directory")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 }
@@ -214,13 +216,13 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			var payload GetFileJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
-			fmt.Println("filename:", payload.Filename)
 			if payload.Filename == "" && payload.CID == "" {
-				fmt.Fprintf(w, "400 - Missing CID and Filename field in request\n")
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Missing Filename and CID values inside of the payload.")
 				return
 			}
 			fileDir := "./files"
@@ -236,12 +238,12 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			if _, err := os.Stat(requestedFilePath); err == nil {
 				filePath = requestedFilePath
 			}
-			fmt.Println("filePath:", filePath)
 
 			// Attempt to delete the file
 			err := os.Remove(filePath)
 			if err != nil {
-				fmt.Println("Error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Error removing file from local directory.")
 				return
 			}
 
@@ -250,12 +252,12 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -275,14 +277,15 @@ func getActivities(w http.ResponseWriter, r *http.Request) {
 		allActivities, err := backend.GetActivities()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+			writeStatusUpdate(w, "Error getting the activities")
 			return
 		}
 		var activityStrings []string
 		for _, activity := range allActivities {
 			activityString, err := json.Marshal(activity)
 			if err != nil {
-				fmt.Println("Error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				writeStatusUpdate(w, "Failed to convert JSON Data into a string")
 				return
 			}
 			activityStrings = append(activityStrings, string(activityString))
@@ -294,7 +297,7 @@ func getActivities(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		writeStatusUpdate(w, "Only GET requests will be handled.")
 		return
 	}
 
@@ -308,19 +311,19 @@ func setActivity(w http.ResponseWriter, r *http.Request) {
 			var payload Activity
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			backend.SetActivity(payload)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -338,19 +341,19 @@ func removeActivity(w http.ResponseWriter, r *http.Request) {
 			var payload RemoveActivityJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			backend.RemoveActivity(payload.Id)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -369,19 +372,19 @@ func updateActivityName(w http.ResponseWriter, r *http.Request) {
 			var payload UpdateActivityJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			backend.UpdateActivityName(payload.Id, payload.Name)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -401,19 +404,19 @@ func writeFile(w http.ResponseWriter, r *http.Request) {
 			var payload WriteFileJSONBody
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			backend.UploadFile(payload.Base64File, payload.OriginalFileName, payload.Filesize)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -427,20 +430,20 @@ func addPeer(w http.ResponseWriter, r *http.Request) {
 			var payload PeerInfo
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			peers.AddPeer(payload)
 			return
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -458,15 +461,16 @@ func getPeer(w http.ResponseWriter, r *http.Request) {
 			var payload PeerIdPOSTPayload
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			currPeer, exists := peers.GetPeer(payload.PeerID)
 			if exists {
 				peerString, err := json.Marshal(currPeer)
 				if err != nil {
-					fmt.Println("Error:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					writeStatusUpdate(w, "Failed to marshal data from go object into a string")
 					return
 				}
 				w.Header().Set("Content-Type", "application/octet-stream")
@@ -481,12 +485,12 @@ func getPeer(w http.ResponseWriter, r *http.Request) {
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		writeStatusUpdate(w, "Only GET requests will be handled.")
 		return
 	}
 
@@ -499,8 +503,8 @@ func getAllPeers(w http.ResponseWriter, r *http.Request) {
 			var payload PeerIdPOSTPayload
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			allPeers := peers.GetAllPeers()
@@ -521,12 +525,12 @@ func getAllPeers(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only GET requests are supported\n")
+		writeStatusUpdate(w, "Only GET requests will be handled.")
 		return
 	}
 
@@ -539,20 +543,20 @@ func updatePeer(w http.ResponseWriter, r *http.Request) {
 			var payload PeerInfo
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
 				return
 			}
 			peers.UpdatePeer(payload.PeerID, payload)
 			return
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
@@ -566,19 +570,20 @@ func removePeer(w http.ResponseWriter, r *http.Request) {
 			var payload PeerIdPOSTPayload
 			decoder := json.NewDecoder(r.Body)
 			if err := decoder.Decode(&payload); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "500 - Internal Server Error: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				writeStatusUpdate(w, "Cannot marshal payload in Go object. Does the payload have the correct body structure?")
+				return
 			}
 			peers.RemovePeer(payload.PeerID)
 			return
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
+			writeStatusUpdate(w, "Request must have the content header set as application/json")
 			return
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "405 - Method Not Allowed: Only POST requests are supported\n")
+		writeStatusUpdate(w, "Only POST requests will be handled.")
 		return
 	}
 
