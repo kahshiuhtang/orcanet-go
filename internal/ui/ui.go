@@ -46,8 +46,6 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "File not found in local storage", http.StatusNotFound)
 				return
 			}
-
-
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "400 - Bad Request: Unsupported content type: %s\n", contentType)
@@ -95,6 +93,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			if _, err := os.Stat(storedFilePath); err == nil {
 				filePath = storedFilePath
 			}
+<<<<<<< HEAD
 
 			// Check if the file exists in the "requested" directory
 			requestedFilePath := filepath.Join(fileDir, "requested", payload.Filename)
@@ -108,6 +107,16 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			err := os.Remove(filePath)
 			if err != nil {
 				fmt.Println("Error:", err)
+=======
+			if _, err := os.Stat("files/requested/" + payload.Filename); !os.IsNotExist(err) {
+				notFound = true
+			}
+			if _, err := os.Stat("files/stored/" + payload.Filename); !os.IsNotExist(err) {
+				notFound = true
+			}
+			if !notFound {
+				http.Error(w, "File not found in local storage", http.StatusNotFound)
+>>>>>>> 80282b7340adbe262c6ca0a80c4a3e6974731e9a
 				return
 			}
 		
