@@ -321,7 +321,7 @@ Response Body:
 
 10. Route /sendTransaction with a POST Request, must send the transaction and a signed version of the transaction. The body should be an octet-stream of the json object that is described below in the Request Body.
 
-Request Body: NONE
+Request Body: 
 ```json
 {
     "bytes": "bytes[]",
