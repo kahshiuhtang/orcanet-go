@@ -226,7 +226,7 @@ func sendFileToConsumer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	w.Header().Set("Content-Type", contentType)
 
-	// Copy file contents to response body
+	// Copy file contents to Response Body
 	_, err = io.Copy(w, file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

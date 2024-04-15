@@ -68,7 +68,7 @@ func getLocation(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal([]byte(locationJsonString), &locationJson)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			writeStatusUpdate(w, "Issue with reading the request body. Is the correct format used?")
+			writeStatusUpdate(w, "Issue with reading the Request Body. Is the correct format used?")
 			return
 		}
 		location := LocationInfoResponse{}

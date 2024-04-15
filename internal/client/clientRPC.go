@@ -37,7 +37,7 @@ func RequestFileFromProducer(baseURL string, filename string) bool {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	//We Read the response body on the line below.
+	//We Read the Response Body on the line below.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)

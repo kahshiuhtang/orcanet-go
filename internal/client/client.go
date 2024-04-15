@@ -138,7 +138,7 @@ func (client *Client) GetFileOnce(ip, port, filename string) error {
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading response body:", err)
+			fmt.Println("Error reading Response Body:", err)
 			return err
 		}
 		fmt.Printf("\nError: %s\n> ", body)
@@ -302,17 +302,17 @@ func (client *Client) storeData(ip, port, filename string, fileData *FileData) (
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading response body:", err)
+			fmt.Println("Error reading Response Body:", err)
 			return "", err
 		}
 		fmt.Printf("\nError: %s\n> ", body)
 		return "", errors.New("http status not ok")
 	}
 
-	// Read response body
+	// Read Response Body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		fmt.Println("Error reading Response Body:", err)
 		return "", err
 	}
 	client.name_map.PutFileHash(filename, string(body))
@@ -338,7 +338,7 @@ func (client *Client) getData(ip, port, filename string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading response body:", err)
+			fmt.Println("Error reading Response Body:", err)
 			return nil, err
 		}
 		fmt.Printf("\nError: %s\n> ", body)

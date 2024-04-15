@@ -88,11 +88,11 @@ func sendStatusResponse(w http.ResponseWriter, status string, statusCode int) {
 }
 
 func handleTransaction(w http.ResponseWriter, r *http.Request) {
-	// Read the request body
+	// Read the Request Body
 	fmt.Println("Handling a transaction...")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		http.Error(w, "Error reading Request Body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -244,7 +244,7 @@ func (server *Server) sendFile(w http.ResponseWriter, r *http.Request, confirmin
 		}
 	} else {
 		fmt.Println("sending in one piece")
-		// Copy file contents to response body
+		// Copy file contents to Response Body
 		_, err = io.Copy(w, file)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -262,7 +262,7 @@ type FileData struct {
 }
 
 func (server *Server) storeFile(w http.ResponseWriter, r *http.Request, confirming *bool, confirmation *string) {
-	// Parse JSON object from request body
+	// Parse JSON object from Request Body
 	var fileData FileData
 	err := json.NewDecoder(r.Body).Decode(&fileData)
 	if err != nil {

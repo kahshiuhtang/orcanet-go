@@ -191,7 +191,7 @@ func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.Priv
 			fmt.Println(" getKey [key]                   Retreieve key from DHT")
 			fmt.Println(" import [filepath]              Import a file")
 			fmt.Println(" fileGet [fileHash]             Get the file from the network")
-			fmt.Println(" send [amount] [ip]             Send an amount of money to network")
+			fmt.Println(" send [amount] [ip] [port]      Send an amount of money to network")
 			fmt.Println(" hash [fileName]                Get the hash of a file")
 			fmt.Println(" list                           List all files you are storing")
 			fmt.Println(" location                       Print your location")
