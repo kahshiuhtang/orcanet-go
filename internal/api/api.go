@@ -58,9 +58,42 @@ func getFile(w http.ResponseWriter, r *http.Request) {
 				fileaddress = "files/" + payload.Filename
 			}
 			if fileaddress != "" {
+				if st, err := os.Stat("files/" + payload.Filename); !os.IsNotExist(err) {
+					fileData, err := os.ReadFile("files/" + payload.Filename)
+					if err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						writeStatusUpdate(w, "Failed to read in file from given path")
+						return
+					}
+					lenData := len(fileData)
+					base64Encode := base64.StdEncoding.EncodeToString(fileData)
+					hash := sha256.Sum256(fileData)
 
+					// Encode the hash as a hexadecimal string
+					hexHash := hex.EncodeToString(hash[:])
+
+					fileInfoResp := FileInfo{
+						Filename:     payload.Filename,
+						Filesize:     lenData,
+						Filehash:     hexHash,
+						Lastmodified: st.ModTime().String(),
+						Filecontent:  base64Encode,
+					}
+					jsonData, err := json.Marshal(fileInfoResp)
+					if err != nil {
+						w.WriteHeader(http.StatusInternalServerError)
+						writeStatusUpdate(w, "Failed to convert JSON Data into a string")
+						return
+					}
+					w.Header().Set("Content-Type", "application/octet-stream")
+					w.WriteHeader(http.StatusOK)
+					w.Write(jsonData)
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
 			} else {
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusAccepted)
 				writeStatusUpdate(w, "Cannot find specified file inside files directory")
 				return
 			}

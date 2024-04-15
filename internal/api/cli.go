@@ -60,7 +60,7 @@ type LocationInfoResponse struct {
 	ASN       string `json:"asn"`
 	Timezone  string `json:"timezone"`
 	Continent string `json:"continent"`
-	Org       string `json:"org`
+	Org       string `json:"org"`
 }
 
 func hashFile(w http.ResponseWriter, r *http.Request) {
@@ -79,11 +79,11 @@ func hashFile(w http.ResponseWriter, r *http.Request) {
 			fileData, err := os.ReadFile("files/" + payload.Filepath)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				writeStatusUpdate(w, "Failed to read in file from given path")
+				writeStatusUpdate(w, "Failed to read in file from given path "+payload.Filepath)
 				return
 			}
 			hash := sha256.Sum256(fileData)
-			responseMsg := map[string]interface{}{
+			responseMsg := map[string][32]byte{
 				"hash": hash,
 			}
 			responseMsgJsonString, err := json.Marshal(responseMsg)
@@ -103,7 +103,7 @@ func hashFile(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		writeStatusUpdate(w, "Only GET requests will be handled")
+		writeStatusUpdate(w, "Only POST requests will be handled")
 		return
 	}
 }
