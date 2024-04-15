@@ -613,4 +613,5 @@ func InitServer() {
 	http.HandleFunc("/addPeer", addPeer)
 	http.HandleFunc("/sendMoney", sendMoney)
 	http.HandleFunc("/getLocation", getLocation)
+	http.HandleFunc("/hash", hashFile)
 }

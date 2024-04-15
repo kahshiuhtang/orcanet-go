@@ -543,6 +543,26 @@ Response Body:
 }
 ```
 
+---
+
+22. Route /hash is a POST Request. It will return the hash of a file. It startes looking for files in the root of the files directory only. The file will need to be in the ./files/ directory in order to be found to be hashed. This can change if needed.
+
+Request Body: 
+
+```json
+{
+    "filepath": "string"
+}
+```
+
+Response Body: 
+
+```json
+{
+    "hash": "string"
+}
+```
+
 
 ## gRPC protocol
 
